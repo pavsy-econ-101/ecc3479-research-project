@@ -72,6 +72,7 @@ The pipeline requires the following files in `data/raw/` for the cleaning script
 | `WB_unemployment.xlsx` | Measure of unemployment, percent of total labour force per annum for each nation | World Bank Group | Visit the World Bank Data page and select [Indicator SL.UEM.TOTL.ZS](https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS). Download the data as an xlsx file. 
 | `WB_pink-sheet.xlsx` | Historical measure of prices of several commodities over a long period of time. We will be filtering out the `Crude Oil, Average` for our evaluation purposes | World Bank Group | Visit the [linked page](https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/world-bank-commodities-price-data-the-pink-sheet) and download the file `CMO-Historical-Data-Annual.xlsx` 
 
+#### Manual Download Instructions for `AREAER_exchange-regime.xlsx`
 
 1. **Access the Source**
 Go to the [IMF AREAER eLibrary Query Tool](https://www.elibrary-areaer.imf.org/Pages/ChapterQuery.aspx).
