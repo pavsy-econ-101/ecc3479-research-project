@@ -11,6 +11,7 @@ library(readxl)    # For .xls and .xlsx files
 library(janitor)   # For cleaning messy column names
 library(countrycode) # For mapping country codes (IFS to ISO3)
 library(stringr)   # For string manipulation (regex)
+library(slider)    # For rolling averages (net exporter dummy)
 
 # 2. Define Paths
 raw_path   <- here("data", "raw")
@@ -235,12 +236,24 @@ clean_eia_data <- function(df, value_name) {
 oil_exports_long <- clean_eia_data(oil_exports_raw, "oil_exports")
 oil_imports_long <- clean_eia_data(oil_imports_raw, "oil_imports")
 
+# 5.3. Net Exporter Logic (with 10-Year Smoothing) ------------------------
+
 net_exporter_clean <- oil_exports_long %>%
   full_join(oil_imports_long, by = c("iso_code", "year")) %>%
+  group_by(iso_code) %>%
+  arrange(year) %>%
   mutate(
-    # Logic: 1 if Exports > Imports, 0 otherwise
-    is_net_exporter = if_else(oil_exports > oil_imports, 1, 0)
+    # 1. Calculate the Net Position for each year
+    net_position = oil_exports - oil_imports,
+    
+    # 2. Calculate the 10-Year Rolling Average of that position
+    # (Using 'boundary = "extend"' keeps the start of the series from being NA)
+    roll_net_avg = slider::slide_dbl(net_position, mean, .before = 10, .complete = FALSE),
+    
+    # 3. Logic: 1 if the ROLLING AVERAGE is positive, 0 otherwise
+    is_net_exporter = if_else(roll_net_avg > 0, 1, 0)
   ) %>%
+  ungroup() %>%
   select(iso_code, year, is_net_exporter)
 
 # 6.5. IMF Discount Rate Cleaning -----------------------------------------
