@@ -4,14 +4,14 @@
 # ==============================================================================
 
 # 1. Load Libraries
-# If you don't have these libraries installed: please use install.packages.
+install.packages(c("tidyverse", "here", "readxl", "janitor", "countrycode", "stringr", "slider")) # Run this line once to install all at once
 library(tidyverse) # For cleaning and pivoting
 library(here)      # For robust file paths
 library(readxl)    # For .xls and .xlsx files
 library(janitor)   # For cleaning messy column names
 library(countrycode) # For mapping country codes (IFS to ISO3)
 library(stringr)   # For string manipulation (regex)
-library(slider)    # For rolling averages (net exporter dummy)
+library(slider)    # For rolling averages
 
 # 2. Define Paths
 raw_path   <- here("data", "raw")
