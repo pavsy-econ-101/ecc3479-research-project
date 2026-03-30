@@ -50,6 +50,8 @@ Before running the scripts, you must ensure the local directory is prepared:
 3.  **Place Raw Data**: Ensure the source files (e.g., `EIA_crudeoil-exports.csv`, `Romelli_CBIData.xlsx`) are present into the `data/raw/` directory.
 4. **Run the Code:** Open the project in VSCode and run `src/01_data_cleaning.R`. This is a master script that handles the entire pipeline from ingestion to final panel export. The cleaned dataset will be generated in `data/clean/`.
 
+*Note: When the script is run, it ocassionally produces `object not found.` errors. If it does so, please run `1. Load libraries` code block first, and then run the rest of the code afterwards.`*
+
 ---
 
 ## 🗃 Raw Data Inventory & Source Indicators

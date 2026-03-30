@@ -13,6 +13,8 @@ library(countrycode) # For mapping country codes (IFS to ISO3)
 library(stringr)   # For string manipulation (regex)
 library(slider)    # For rolling averages
 
+#Note: When the script is run, it ocassionally produces errors such as `object export-path not found.` If it does so, please run `1. Load libraries` code block first, and then run the rest of the code.`
+
 # 2. Define Paths
 raw_path   <- here("data", "raw")
 clean_path <- here("data", "clean")
