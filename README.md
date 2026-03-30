@@ -59,7 +59,7 @@ The pipeline requires the following files in `data/raw/` for the cleaning script
 
 | File Name | Purpose | Source | Access Method |
 | :--- | :--- | :--- | :--- |
-| `AREAER_exchange-regime.csv` | De facto classification of exchange regimes, to be used as a further control to isolate exchange rate effects from price shocks | IMF AREAER eLibrary | A custom data query through [IMF AREAER Library](https://www.elibrary-areaer.imf.org/) and download resulting xlsx file.
+| `AREAER_exchange-regime.csv` | De facto classification of exchange regimes, to be used as a further control to isolate exchange rate effects from price shocks | IMF AREAER eLibrary | 1. Open [IMF AREAER Library](https://www.elibrary-areaer.imf.org/Pages/ChapterQuery.aspx) and review **Manual Download Instructions** attached below this table.
 | `EIA_crudeoil-exports.csv` | Measure of crude oil including lease condensate exports (Mb/d), to be used to create a 'net crude oil exporter' variable which would be used to isolate the effects between oil importers and exporters | Energy Information Administration, US (EIA) | Access the [EIA Portal](https://www.eia.gov/international/data/world/petroleum-and-other-liquids/annual-crude-and-lease-condensate-exports) and download as an csv file.
 | `EIA_crudeoil-imports.csv` | Measure of crude oil including lease condensate imports (Mb/d), to be used to create a 'net crude oil exporter' variable which would be used to isolate the effects between oil importers and exporters | Energy Information Administration, US (EIA) | Access the [EIA Portal](https://www.eia.gov/international/data/world/petroleum-and-other-liquids/annual-crude-and-lease-condensate-imports) and download as an csv file.
 | `IMF_discount-rate.csv` | Measure of Discount Rate, percent per annum (further filtered in the script to remove other indicators). Will be used as a dedicated variable to ensure any effects on oil pricing based on discount rates are isolated. | IMF Monetary and Financial Statistics (MFS) Dataset | Access the [IMF Dataset](https://data.imf.org/en/datasets/IMF.STA:MFS_IR?indicator_id=DISR_RT_PT_A_PT) and download as an xlsx file. 
@@ -71,6 +71,30 @@ The pipeline requires the following files in `data/raw/` for the cleaning script
 | `WB_trade-percent.xlsx` | Measure of trade, as a percent of the GDP for each nation | World Bank Group | Visit the World Bank Data page and select [Indicator NE.TRD.GNFS.ZS](https://data.worldbank.org/indicator/NE.TRD.GNFS.ZS). Download the data as an xlsx file. 
 | `WB_unemployment.xlsx` | Measure of unemployment, percent of total labour force per annum for each nation | World Bank Group | Visit the World Bank Data page and select [Indicator SL.UEM.TOTL.ZS](https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS). Download the data as an xlsx file. 
 | `WB_pink-sheet.xlsx` | Historical measure of prices of several commodities over a long period of time. We will be filtering out the `Crude Oil, Average` for our evaluation purposes | World Bank Group | Visit the [linked page](https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/world-bank-commodities-price-data-the-pink-sheet) and download the file `CMO-Historical-Data-Annual.xlsx` 
+
+
+### Manual Download Instructions for `AREAER_exchange-regime.xlsx`**
+
+1. **Access the Source**
+Go to the [IMF AREAER eLibrary Query Tool](https://www.elibrary-areaer.imf.org/Pages/ChapterQuery.aspx).
+
+2. **Configure Query Parameters**
+Follow the step-by-step selection process in the IMF portal:
+
+| Step | Category | Action |
+| :--- | :--- | :--- |
+| **01** | **Years** | Click **"Select All"** → Click **"Next"** |
+| **02** | **Countries** | Click **"Select All"** → Click **"Next"** |
+| **03** | **Categories** | Select the following checkboxes: <br> • `973 - Conventional Peg` <br> • `159 - Stabilised Peg` <br> • `978 - Floating` <br> Then click **"Next"** twice. |
+| **04** | **Reporting** | Select: <br> • `Sort by Year, Country, Category` <br> • `Include IFS Code` <br> Then click **"Generate Content Report"**. |
+
+3. **Export and Save**
+1. Once the query results open in a new browser tab, locate the **"Excel"** link in the top right corner.
+2. Download the file.
+3. Rename the file to `AREAER_exchange-regime.csv`.
+4. Place the file in the `/data/raw` directory of this project.
+
+> **Note:** Ensure the filename is exact (case-sensitive) as the R scripts look specifically for `AREAER_exchange-regime.xlsx` to begin the cleaning process.
 
 ---
 
