@@ -73,8 +73,6 @@ The pipeline requires the following files in `data/raw/` for the cleaning script
 | `WB_pink-sheet.xlsx` | Historical measure of prices of several commodities over a long period of time. We will be filtering out the `Crude Oil, Average` for our evaluation purposes | World Bank Group | Visit the [linked page](https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/world-bank-commodities-price-data-the-pink-sheet) and download the file `CMO-Historical-Data-Annual.xlsx` 
 
 
-### Manual Download Instructions for `AREAER_exchange-regime.xlsx`**
-
 1. **Access the Source**
 Go to the [IMF AREAER eLibrary Query Tool](https://www.elibrary-areaer.imf.org/Pages/ChapterQuery.aspx).
 
@@ -83,19 +81,18 @@ Follow the step-by-step selection process in the IMF portal:
 
 | Step | Category | Action |
 | :--- | :--- | :--- |
-| **01** | **Years** | Click **"Select All"** → Click **"Next"** |
-| **02** | **Countries** | Click **"Select All"** → Click **"Next"** |
-| **03** | **Categories** | Select the following checkboxes: <br> • `973 - Conventional Peg` <br> • `159 - Stabilised Peg` <br> • `978 - Floating` <br> Then click **"Next"** twice. |
-| **04** | **Reporting** | Select: <br> • `Sort by Year, Country, Category` <br> • `Include IFS Code` <br> Then click **"Generate Content Report"**. |
+| 1 | **Years** | Click **"Select All"** → Click **"Next"** |
+| 2 | **Countries** | Click **"Select All"** → Click **"Next"** |
+| 3 | **Categories** | Select the following checkboxes: <br> • `973 - Conventional Peg` <br> • `159 - Stabilised Peg` <br> • `978 - Floating` <br> Then click **"Next"** twice. |
+| 4 | **Reporting** | Select: <br> • `Sort by Year, Country, Category` <br> • `Include IFS Code` <br> Then click **"Generate Content Report"**. |
 
 3. **Export and Save**
-1. Once the query results open in a new browser tab, locate the **"Excel"** link in the top right corner.
-2. Download the file.
-3. Rename the file to `AREAER_exchange-regime.csv`.
-4. Place the file in the `/data/raw` directory of this project.
+* Once the query results open in a new browser tab, locate the **"Excel"** link in the top right corner.
+* Download the file.
+* Rename the file to `AREAER_exchange-regime.csv`.
+* Place the file in the `/data/raw` directory of this project.
 
 > **Note:** Ensure the filename is exact (case-sensitive) as the R scripts look specifically for `AREAER_exchange-regime.xlsx` to begin the cleaning process.
-
 ---
 
 ## 🛠 Detailed Methodology
