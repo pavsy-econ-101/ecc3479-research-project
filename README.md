@@ -115,7 +115,7 @@ To test the central hypothesis, an interaction term `oil_interaction` ($CBI \tim
 | **Technical** | `lag_cbi` | CBI Index ($t-1$) | 0–1 | Calculated | Addresses potential endogeneity and simultaneity. |
 | | `lag_inflation` | Inflation rate ($t-1$) | Percentage | Calculated | Captures path-dependency and inflation persistence. |
 | | `log_oil_price` | Natural log of oil price | Log-Value | Calculated | Normalises price scale for elasticities interpretation. |
-| | `log_gdp` | Natural log of real GDP | Log-Value | Calculated | Controls for country size and scale effects. |
+| | `log_gdp` | Natural log of real GDP growth | Log-Value | Calculated | Controls for country size and scale effects. |
 | | `inflation_rate` | Raw CPI % change | Percentage | World Bank | Baseline for comparison with the cleaned version. |
 | | `cbi_gmt` | GMT Component of CBI | 0–1 | Romelli (2022) | Alternative index for robustness checks. |
 
