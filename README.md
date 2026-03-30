@@ -38,6 +38,7 @@ To ensure reproducibility, the following environment is required:
     * `janitor` (Data cleaning)
     * `slider` (Rolling average calculations)
     * `readxl` (Importing Excel files)
+    * `countrycode` (Importing ISO-A3 country codes for standardisation)
 ---
 
 
@@ -130,7 +131,9 @@ To test the central hypothesis, an interaction term `oil_interaction` ($CBI \tim
 
 ## ⚖️ Licence & Usage
 **Author:** Pavan Sundar  
+
 **Institutional Affiliation:** Monash University
+
 **Date:** March 2026  
 
 This repository was developed for academic assessment purposes (Unit ECC3479). All rights are reserved. The code and documentation provided herein are the original work of the author. Redistribution or commercial use of this material is prohibited without explicit consent.
