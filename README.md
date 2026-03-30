@@ -106,7 +106,7 @@ To test the central hypothesis, an interaction term `oil_interaction` ($CBI \tim
 | | `gdp_growth` | Annual real GDP growth | Percentage | World Bank | Controls for business cycle fluctuations and output shocks. |
 | | `m2_growth` | Annual money supply growth | Percentage | World Bank | Controls for domestic monetary expansion and "money printing." |
 | | `net_lending` | Gov. Budget Balance / GDP | Percentage | World Bank | Controls for fiscal policy and deficit-driven inflation. |
-| | `ex_regime` | Exchange Flexibility Score | 1 (Fixed) – 15 (Float) | Ilzetzki et al. | Controls for the "Nominal Anchor" effect of currency pegs. |
+| | `ex_regime` | Exchange Flexibility Score | 1 (Fixed) – 15 (Float) | IMF AREAER | Controls for the "Nominal Anchor" effect of currency pegs. |
 | **Shocks** | `oil_price_avg` | Annual Brent Crude price | USD/Barrel | EIA | Captures external energy-related cost-push inflation. |
 | | `crisis_year` | Financial/Debt crisis dummy | Binary (0/1) | Various | Controls for structural breaks and systemic instability. |
 | **Structural** | `is_net_exporter` | Net Oil Exporter indicator | Binary (0/1) | EIA | Identifies the treatment group via 10-year rolling average. |
