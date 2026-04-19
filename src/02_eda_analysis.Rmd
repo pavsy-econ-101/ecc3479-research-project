@@ -1,13 +1,18 @@
 ---
 title: "Exploratory Data Analysis: Central Bank Independence and Inflation"
-author: "Pavan Sundar - ECC3479 Research Project"
+author: "Pavan Sundar – ECC3479 Research Project"
 date: "`r Sys.Date()`"
-output: 
-  github_document:
+output:
+  html_document:
     toc: true
     toc_depth: 3
-    html_preview: false
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+    self_contained: true
 ---
+---
+
 ```{r setup, include=FALSE}
 
 # =========================
@@ -34,9 +39,6 @@ project_root <- here::here()
 # =========================
 # Absolute path (for saving)
 out_dir_abs <- file.path(project_root, "output", "eda_figures")
-
-# Relative path (for Markdown)
-out_dir_rel <- "../eda_figures"
 dir.create(out_dir_abs, recursive = TRUE, showWarnings = FALSE)
 
 # =========================
@@ -61,9 +63,8 @@ df <- read_csv(file.path(project_root, "data", "clean", "df_panel_final.csv"))
 # =========================
 # PLOT SAVE HELPER
 # =========================
-save_plot <- function(name, plot) {
 
-  print(plot)
+save_plot <- function(name, plot) {
 
   ggplot2::ggsave(
     filename = file.path(out_dir_abs, name),
@@ -73,7 +74,6 @@ save_plot <- function(name, plot) {
     dpi = 300
   )
 }
-
 # =========================
 # THEME
 # =========================
@@ -111,9 +111,8 @@ Identify obvious missing data or structural irregularities
 
 ### 1.2 Panel Structure
 
+#### Table 1: Panel Dimensions
 ```{r, panel-structure}
-cat("#### Table 1: Panel Dimensions\n\n")
-
 datasummary_df(
   df %>% summarise(
     Observations = n(),
@@ -128,10 +127,8 @@ Interpretation Notes:
 
 A
 
-
+#### Table 2: Coverage of years per country
 ```{r, coverage-years-per-country}
-cat("#### Table 2: Coverage of years per country\n\n")
-
 datasummary_df(
   df %>%
     distinct(iso_code, year) %>%
@@ -174,9 +171,8 @@ Are missing values random or systematic?
 Which variables are most affected?
 Implications for regression bias or sample selection
 
+#### Table 3: Countries with highest missingness (key variables)
 ```{r, missingness-by-country}
-cat("#### Table 3: Countries with highest missingness (key variables)\n\n")
-
 datasummary_df(
   df %>%
     mutate(miss = rowSums(is.na(select(
@@ -200,9 +196,8 @@ Interpretation Notes:
 
 ### 2.1 Continuous Variables
 
+#### Table 4: Descriptive Statistics – Continuous Variables
 ```{r, summary-continuous}
-cat("#### Table 4: Descriptive Statistics – Continuous Variables\n\n")
-
 datasummary_skim(
   df %>% select(
     inflation_clean,
@@ -215,7 +210,8 @@ datasummary_skim(
     net_lending,
     oil_price_avg
   ),
-  fmt = 2
+  fmt = 2,
+  histogram = FALSE
 )
 ```
 
@@ -227,10 +223,9 @@ Identify potential outliers or crisis-driven skewness
 
 ### 2.2 Binary and Dummy Variables
 
-```{r, summary-binary}
+#### Table 5: Exchange Rate Regime Composition
 
-cat("#### Table 5: Exchange Rate Regime Composition\n\n")
-
+```{r, summary-exrate}
 datasummary_balance(
   ~ ex_regime_lbl,
   data = df %>%
@@ -242,9 +237,11 @@ datasummary_balance(
       )
     )
 )
+```
 
-cat("#### Table 6: Net Oil Exporter Composition\n\n")
+#### Table 6: Net Oil Exporter Composition
 
+```{r, summary-oil-exporter}
 datasummary_balance(
   ~ is_net_exporter_lbl,
   data = df %>%
@@ -256,9 +253,11 @@ datasummary_balance(
       )
     )
 )
+```
 
-cat("#### Table 7: Crisis Year Decomposition\n\n")
+#### Table 7: Crisis Year Decomposition
 
+```{r, crisis_decomposition}
 datasummary_balance(
   ~ crisis_year_lbl,
   data = df %>%
@@ -282,9 +281,8 @@ Is sample composition balanced or skewed?
 
 ### 3.1 Inflation Distribution
 
+#### Table 8: Inflation Winsorisation Diagnostics
 ```{r inflation-distribution}
-cat("#### Table 8: Inflation Winsorisation Diagnostics\n\n")
-
 datasummary_df(
   df %>% summarise(
     Min_raw      = min(inflation_rate, na.rm = TRUE),
@@ -425,7 +423,7 @@ Asymmetric pass-through effects?
 save_plot(
   "07_ex_regime_interaction.png",
   df %>%
-    dplyr::filter(!is.na(ex_regime)) %>%   # 2️⃣ remove NA regime observations
+    dplyr::filter(!is.na(ex_regime)) %>%   
     ggplot(aes(
       x = cbi_extended,
       y = inflation_clean
@@ -442,7 +440,7 @@ save_plot(
       labs(
         title = "Figure 7: CBI Effect by Exchange Rate Regime",
         x = "CBI Index",
-        y = "Annual Inflation % change (Winsorised)"
+        y = "Annual Inflation (%) change (Winsorised)"
       )
 )
 ```
@@ -454,10 +452,8 @@ Evidence of Simpsons paradox?
 
 ### 5.2 Inflation Persistence
 
+#### Table 9: Inflation Persistence Diagnostics
 ```{r, inflation-persistence}
-
-cat("#### Table 9: Inflation Persistence Diagnostics\n\n")
-
 datasummary_df(
   df %>% summarise(
     Correlation = cor(lag_inflation, inflation_clean, use = "complete.obs"),
@@ -491,12 +487,13 @@ save_plot(
       labs(
         title = "Figure 8: Inflation Persistence (Winsorised)",
         x = "Lagged Inflation (% change, winsorised)",
-        y = "Annual Inflation % change (winsorised)"
+        y = "Annual Inflation (%) change (winsorised)"
       )
 )
+```
 
-cat("#### Table 10: Inflation persistence by Crisis Status\n\n")
-
+#### Table 10: Inflation persistence by Crisis Status
+```{r, inflation-persistence-crisis}
 datasummary_df(
   df %>%
     filter(complete.cases(lag_inflation, inflation_clean)) %>%
@@ -517,10 +514,8 @@ Justifies lagged dependent variable
 
 ## 5.3. Correlation Structures
 
+#### Table 11: Correlation matrix — Key Variables
 ```{r, correlation-structure}
-
-cat("#### Table 11: Correlation matrix — Key Variables\n\n")
-
 datasummary_correlation(
   df %>% select(
     inflation_clean,
@@ -567,9 +562,8 @@ Structural relationships between macro variables?
 
 ## 6. Key Conclusions and Summary
 
+#### Table 11: Sample size under Common Restrictions
 ```{r key-findings}
-cat("#### Table 11: Sample size under Common Restrictions\n\n")
-
 datasummary_df(
   tibble::tibble(
     Sample = c(
