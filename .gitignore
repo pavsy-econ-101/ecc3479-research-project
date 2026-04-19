@@ -10,3 +10,10 @@ tinytables_assets/
 # OS junk
 .DS_Store
 Thumbs.db
+
+output/
+*_files/
+*_cache/
+*.tex
+*.aux
+*.log
