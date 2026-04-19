@@ -1,4 +1,4 @@
-Exploratory Data Analysis:
+Exploratory Data Analysis: Central Bank Independence and Inflation
 ================
 Pavan Sundar - ECC3479 Research Project
 2026-04-19
@@ -122,31 +122,31 @@ Interpretation Notes:
 |  | Unique | Missing Pct. | Mean | SD | Min | Median | Max | Histogram |
 |----|----|----|----|----|----|----|----|----|
 | inflation_clean | 4519 | 0 | 8.25 | 15.34 | -5.00 | 3.81 | 100.00 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_4_idwq555o7o0mpdj6sw2rdi.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_4_idnwsadrbe63v61nv4pdcr.png"
 height="16" /> |
 | inflation_rate | 4603 | 0 | 22.39 | 386.45 | -16.12 | 3.81 | 23773.13 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_5_id7jgcqxmxesn8mc5yh4yn.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_5_idym9lokwpapgb8rd44jat.png"
 height="16" /> |
 | cbi_extended | 309 | 0 | 0.63 | 0.17 | 0.14 | 0.62 | 0.93 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_1_idvenasuuhrzr59nlib3on.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_1_id805ijd8zhn85vkh39sok.png"
 height="16" /> |
 | unemployment_rate | 3691 | 5 | 7.70 | 5.79 | 0.10 | 6.10 | 38.80 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_3_idzbmqdrui4lkzelbaireg.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_3_idx2lfw39s98qa9eydiq12.png"
 height="16" /> |
 | trade_percent_gdp | 4098 | 11 | 82.55 | 50.04 | 0.02 | 70.26 | 437.33 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_7_idhtm7lt6v4lhn7gur67zt.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_7_idv0jjamldyc6mxvhgf1do.png"
 height="16" /> |
 | gdp_growth | 4603 | 0 | 3.57 | 6.24 | -64.05 | 3.70 | 149.97 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_2_id9yg96louylspmmezxjyq.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_2_id6ry77tn232zuqfq16leh.png"
 height="16" /> |
 | m2_growth | 3719 | 19 | 22.89 | 178.27 | -99.89 | 11.69 | 6968.92 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_6_idnie88popfbu7e40zfirt.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_6_idej8s1ba867xgba319jmu.png"
 height="16" /> |
 | net_lending | 2939 | 36 | -2.01 | 6.26 | -203.72 | -2.09 | 36.41 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_9_idpcgnavykxm7m7jbwrcaj.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_9_id6vmqdtjp8t9vvkri8519.png"
 height="16" /> |
 | oil_price_avg | 34 | 0 | 52.87 | 30.39 | 13.06 | 52.80 | 105.01 | <img
-src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_8_idu5e5y52zif8fo51x8zfe.png"
+src="C:\Users\pavan\Documents\ecc3479-research-project\src\tinytable_assets\tinytable_8_iddbp370bxnpqppq5ur9fe.png"
 height="16" /> |
 
 Interpretation Notes:

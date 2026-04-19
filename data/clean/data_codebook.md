@@ -1,4 +1,4 @@
-## 📊 Variable Dictionary (`df_panel_final.csv`)
+# 📊 Variable Dictionary (`df_panel_final.csv`)
 
 | Category | Variable | Definition | Unit / Scale | Source | Econometric Justification |
 | :--- | :--- | :--- | :--- | :--- | :--- |

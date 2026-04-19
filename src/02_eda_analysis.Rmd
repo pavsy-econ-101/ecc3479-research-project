@@ -1,5 +1,5 @@
 ---
-title: "Exploratory Data Analysis: Central Bank Independence and Inflation in Oil-Exporting Economies"
+title: "Exploratory Data Analysis: Central Bank Independence and Inflation"
 author: "Pavan Sundar - ECC3479 Research Project"
 date: "`r Sys.Date()`"
 output: 
@@ -32,8 +32,12 @@ project_root <- here::here()
 # =========================
 # OUTPUT DIRECTORY (FIGURES)
 # =========================
-out_dir <- file.path(project_root, "output", "eda_figures")
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+# Absolute path (for saving)
+out_dir_abs <- file.path(project_root, "output", "eda_figures")
+
+# Relative path (for Markdown)
+out_dir_rel <- "../eda_figures"
+dir.create(out_dir_abs, recursive = TRUE, showWarnings = FALSE)
 
 # =========================
 # KNIT SETTINGS
@@ -62,7 +66,7 @@ save_plot <- function(name, plot) {
   print(plot)
 
   ggplot2::ggsave(
-    filename = file.path(out_dir, name),
+    filename = file.path(out_dir_abs, name),
     plot = plot,
     width = 10,
     height = 7,

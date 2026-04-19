@@ -1,0 +1,12 @@
+# R Markdown artefacts
+*.html
+*_files/
+*_cache/
+
+# modelsummary / tinytable assets
+tinytable_assets/
+tinytables_assets/
+
+# OS junk
+.DS_Store
+Thumbs.db
