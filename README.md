@@ -69,9 +69,9 @@ Before running the scripts, you must ensure the local directory is prepared:
 2. **Render the EDA Document:**
 `Rrmarkdown::render(`
 `input = "src/02_eda_analysis.Rmd",`  
-`output_file = "EDA.md",`  
+`output_file = "EDA.html",`  
 `output_dir  = "output/eda")`
-3. Open `output/eda/EDA.md` to read the EDA. All figures are saved in `output/eda_figures/`.
+3. Open `output/eda/EDA.html` to read the EDA. All figures are saved in `output/eda_figures/`.
 ---
 
 ## 🗃 Data Inventory & Source Indicators

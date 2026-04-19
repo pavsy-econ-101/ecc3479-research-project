@@ -1,5 +1,11 @@
-# ----------------------------
 # OS junk
-# ----------------------------
 .DS_Store
 Thumbs.db
+
+# R Markdown artefacts
+*_files/
+*_cache/
+
+# tinytable / modelsummary assets
+tinytable_assets/
+tinytables_assets/
