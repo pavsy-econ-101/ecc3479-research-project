@@ -1,0 +1,599 @@
+---
+title: "Exploratory Data Analysis: Central Bank Independence and Inflation in Oil-Exporting Economies"
+author: "Pavan Sundar - ECC3479 Research Project"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+    toc_depth: 3
+    html_preview: false
+---
+```{r setup, include=FALSE}
+
+# =========================
+# PACKAGES
+# =========================
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(
+  tidyverse,
+  modelsummary,
+  scales,
+  GGally,
+  naniar,
+  here
+)
+
+# =========================
+# PROJECT ROOT
+# =========================
+project_root <- here::here()
+
+# =========================
+# OUTPUT DIRECTORY (FIGURES)
+# =========================
+out_dir <- file.path(project_root, "output", "eda_figures")
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+# =========================
+# KNIT SETTINGS
+# =========================
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  results = "asis",
+  fig.width = 10,
+  fig.height = 7,
+  dev = "png",
+  dpi = 300
+)
+
+# =========================
+# DATA
+# =========================
+df <- read_csv(file.path(project_root, "data", "clean", "df_panel_final.csv"))
+
+# =========================
+# PLOT SAVE HELPER
+# =========================
+save_plot <- function(name, plot) {
+
+  print(plot)
+
+  ggplot2::ggsave(
+    filename = file.path(out_dir, name),
+    plot = plot,
+    width = 10,
+    height = 7,
+    dpi = 300
+  )
+}
+
+# =========================
+# THEME
+# =========================
+theme_set(
+  theme_classic(base_size = 13) +
+    theme(
+      panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.6),
+      panel.grid = element_blank(),
+      axis.line = element_blank(),
+      axis.ticks = element_line(color = "black", linewidth = 0.4),
+      axis.ticks.length = unit(2, "pt"),
+      plot.title = element_text(face = "bold", size = 13, hjust = 0.5),
+      plot.subtitle = element_text(size = 11, colour = "grey30", hjust = 0.5),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom",
+      plot.margin = margin(12, 12, 12, 12)
+    )
+)
+```
+
+## 1. Data Structure and Cleaning Diagnostics
+
+### 1.1 Data Structure
+```{r data-structure}
+
+glimpse(df)
+```
+
+Interpretation Notes:
+
+Unit of observation is country-year panel data
+Check whether panel is balanced or unbalanced
+Identify obvious missing data or structural irregularities
+
+### 1.2 Panel Structure
+
+```{r, panel-structure}
+cat("#### Table 1: Panel Dimensions\n\n")
+
+datasummary_df(
+  df %>% summarise(
+    Observations = n(),
+    Countries    = n_distinct(iso_code),
+    Years        = n_distinct(year),
+    Start_year   = min(year),
+    End_year     = max(year)
+  ))
+```
+
+Interpretation Notes:
+
+A
+
+
+```{r, coverage-years-per-country}
+cat("#### Table 2: Coverage of years per country\n\n")
+
+datasummary_df(
+  df %>%
+    distinct(iso_code, year) %>%
+    count(iso_code, name = "Years_observed") %>%
+    summarise(
+      Min     = min(Years_observed),
+      P25     = quantile(Years_observed, 0.25),
+      Median  = median(Years_observed),
+      Mean    = mean(Years_observed),
+      P75     = quantile(Years_observed, 0.75),
+      Max     = max(Years_observed)
+    )
+)
+```
+
+I
+### 1.3 Missingness Structure
+```{r, missing-data-structure}
+
+save_plot(
+  "01_missing_data_structure.png",
+  df %>%
+    miss_var_summary() %>%
+    filter(pct_miss > 0) %>%
+    mutate(pct_missing = pct_miss) %>%
+    ggplot(aes(x = reorder(variable, pct_missing), y = pct_missing)) +
+    geom_col() +
+    coord_flip() +
+    labs(
+      title = "Figure 1: Missing Data by Variable (%)",
+      x = "",
+      y = "Percent Missing"
+    )
+)
+```
+
+Interpretation Notes:
+
+Are missing values random or systematic?
+Which variables are most affected?
+Implications for regression bias or sample selection
+
+```{r, missingness-by-country}
+cat("#### Table 3: Countries with highest missingness (key variables)\n\n")
+
+datasummary_df(
+  df %>%
+    mutate(miss = rowSums(is.na(select(
+      ., inflation_clean, cbi_extended, gdp_growth, m2_growth
+    )))) %>%
+    group_by(country_name) %>%
+    summarise(
+      Obs = n(),
+      Avg_missing_vars = mean(miss),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(Avg_missing_vars)) %>%
+    slice_head(n = 15),
+)
+```
+
+Interpretation Notes:
+
+
+## 2. Summary Statistics
+
+### 2.1 Continuous Variables
+
+```{r, summary-continuous}
+cat("#### Table 4: Descriptive Statistics – Continuous Variables\n\n")
+
+datasummary_skim(
+  df %>% select(
+    inflation_clean,
+    inflation_rate,
+    cbi_extended,
+    unemployment_rate,
+    trade_percent_gdp,
+    gdp_growth,
+    m2_growth,
+    net_lending,
+    oil_price_avg
+  ),
+  fmt = 2
+)
+```
+
+Interpretation Notes:
+
+Assess volatility in inflation and macro variables
+Evaluate dispersion in CBI index
+Identify potential outliers or crisis-driven skewness
+
+### 2.2 Binary and Dummy Variables
+
+```{r, summary-binary}
+
+cat("#### Table 5: Exchange Rate Regime Composition\n\n")
+
+datasummary_balance(
+  ~ ex_regime_lbl,
+  data = df %>%
+    dplyr::mutate(
+      ex_regime_lbl = factor(
+        ex_regime,
+        levels = c(0, 1),
+        labels = c("Fixed", "Floating")
+      )
+    )
+)
+
+cat("#### Table 6: Net Oil Exporter Composition\n\n")
+
+datasummary_balance(
+  ~ is_net_exporter_lbl,
+  data = df %>%
+    dplyr::mutate(
+      is_net_exporter_lbl = factor(
+        is_net_exporter,
+        levels = c(0, 1),
+        labels = c("Net oil importer", "Net oil exporter")
+      )
+    )
+)
+
+cat("#### Table 7: Crisis Year Decomposition\n\n")
+
+datasummary_balance(
+  ~ crisis_year_lbl,
+  data = df %>%
+    dplyr::mutate(
+      crisis_year_lbl = factor(
+        crisis_year,
+        levels = c(0, 1),
+        labels = c("No crisis", "Crisis year")
+      )
+    )
+)
+```
+
+Interpretation Notes:
+
+What share of countries are floating vs pegged?
+How frequent are crisis periods?
+Is sample composition balanced or skewed?
+
+## 3. Distributional Analysis
+
+### 3.1 Inflation Distribution
+
+```{r inflation-distribution}
+cat("#### Table 8: Inflation Winsorisation Diagnostics\n\n")
+
+datasummary_df(
+  df %>% summarise(
+    Min_raw      = min(inflation_rate, na.rm = TRUE),
+    Max_raw      = max(inflation_rate, na.rm = TRUE),
+    Min_clean    = min(inflation_clean, na.rm = TRUE),
+    Max_clean    = max(inflation_clean, na.rm = TRUE),
+    Pct_changed  = 100 * mean(inflation_clean != inflation_rate, na.rm = TRUE)
+  ),
+  fmt = 2
+)
+
+save_plot(
+  "02_inflation_distribution.png",
+  ggplot(df, aes(x = inflation_clean)) +
+    geom_density(fill = "#2C3E50", alpha = 0.6) +
+    labs(
+      title = "Figure 2: Inflation Distribution (Winsorised)",
+      x = "Inflation (%)",
+      y = "Density"
+    )
+)
+```
+
+Interpretation Notes:
+
+Skewness indicates presence of extreme inflation episodes
+Justifies winsorisation strategy
+Check for fat tails / crisis clustering
+
+### 3.2 CBI Distribution
+
+```{r, cbi-distribution}
+save_plot(
+  "03_cbi_distribution.png",
+  ggplot(df, aes(x = cbi_extended)) +
+    geom_histogram(bins = 30, fill = "#27AE60", color = "white") +
+    labs(
+      title = "Figure 3: Distribution of Central Bank Independence",
+      x = "CBI Index",
+      y = "Frequency"
+    )
+)
+```
+
+Interpretation Notes:
+
+Is institutional reform gradual or stepwise?
+Are countries clustered at low/high independence?
+
+
+## 4. Macroeconomic Validity and Identification Structure
+
+### 4.1 CBI vs Inflation (Main Identification Plot)
+
+```{r, cbi-inflation-relationship}
+save_plot(
+  "04_cbi_inflation_relationship.png",
+  ggplot(df, aes(x = cbi_extended, y = inflation_clean)) +
+    geom_point(alpha = 0.15, color = "#2C3E50") +
+    geom_smooth(method = "lm", color = "#E74C3C", linewidth = 1) +
+    geom_smooth(method = "loess", color = "#3498DB", linetype = "dashed") +
+    labs(
+      title = "Figure 4: Central Bank Independence and Inflation",
+      subtitle = "Linear vs Non-linear Relationship",
+      x = "CBI Index",
+      y = "Inflation (%)"
+    )
+)
+```
+
+Interpretation Notes:
+
+Does higher CBI reduce inflation?
+Linear vs non-linear structure
+Evidence for credibility theory
+
+### 4.2 Crisis Effects on Inflation
+
+```{r, crisis-inflation}
+save_plot(
+  "05_crisis_inflation.png",
+  df %>%
+  mutate(crisis_year = ifelse(crisis_year == 1, "Crisis", "No Crisis")) %>%
+  ggplot(aes(x = crisis_year, y = inflation_clean)) +
+  geom_boxplot(fill = "#3498DB", alpha = 0.6) +
+  labs(
+    title = "Figure 5: Inflation: Crisis vs Non-Crisis Periods",
+    x = "",
+    y = "Inflation (%)"
+  )
+)
+```
+
+Interpretation Notes:
+
+Crisis increases mean inflation?
+Higher variance during crises?
+
+### 4.3 Oil Shock Heterogeneity
+
+```{r, oil-shock-heterogeneity}
+save_plot(
+  "06_oil_shock_heterogeneity.png",
+  ggplot(
+    df,
+    aes(
+      x = oil_price_avg,
+      y = inflation_clean,
+      color = as.factor(is_net_exporter)
+    )
+  ) +
+    geom_smooth(method = "loess") +
+    scale_color_discrete(
+      labels = c(
+        "0" = "Net Oil Importer",
+        "1" = "Net Oil Exporter"
+      )
+    ) +
+    labs(
+      title = "Figure 6: Inflation Response to Oil Price Shocks",
+      color = "Oil Trade Status",
+      x = "Annual Brent Crude Price (US$/Barrel)",
+      y = "Annual Inflation (%)"
+    )
+)
+```
+
+Interpretation Notes:
+
+Do exporters hedge oil shocks better?
+Asymmetric pass-through effects?
+
+## 5. Institutional Heterogeneity and Simpson's Paradox
+
+### 5.1 Exchange Rate Regime Interaction
+
+```{r, ex-regime-interaction}
+save_plot(
+  "07_ex_regime_interaction.png",
+  df %>%
+    dplyr::filter(!is.na(ex_regime)) %>%   # 2️⃣ remove NA regime observations
+    ggplot(aes(
+      x = cbi_extended,
+      y = inflation_clean
+    )) +
+      geom_point(alpha = 0.1) +
+      geom_smooth(method = "lm", color = "#E74C3C") +
+      facet_wrap(
+        ~ ex_regime,
+        labeller = as_labeller(c(
+          `0` = "Fixed",
+          `1` = "Floating"
+        ))
+      ) +
+      labs(
+        title = "Figure 7: CBI Effect by Exchange Rate Regime",
+        x = "CBI Index",
+        y = "Annual Inflation % change (Winsorised)"
+      )
+)
+```
+
+Interpretation Notes:
+
+Does regime alter CBI effectiveness?
+Evidence of Simpsons paradox?
+
+### 5.2 Inflation Persistence
+
+```{r, inflation-persistence}
+
+cat("#### Table 9: Inflation Persistence Diagnostics\n\n")
+
+datasummary_df(
+  df %>% summarise(
+    Correlation = cor(lag_inflation, inflation_clean, use = "complete.obs"),
+    N = sum(complete.cases(lag_inflation, inflation_clean))
+  ),
+  fmt = 3,
+)
+
+save_plot(
+  "08_inflation_persistence.png",
+  df %>%
+    mutate(
+      lag_inflation_clean = pmin(
+        pmax(lag_inflation, -5),
+        100
+      )
+    ) %>%
+    ggplot(
+      aes(
+        x = lag_inflation_clean,
+        y = inflation_clean
+      )
+    ) +
+      geom_point(alpha = 0.15) +
+      geom_smooth(method = "lm", color = "red") +
+      geom_abline(
+        slope = 1,
+        intercept = 0,
+        linetype = "dashed"
+      ) +
+      labs(
+        title = "Figure 8: Inflation Persistence (Winsorised)",
+        x = "Lagged Inflation (% change, winsorised)",
+        y = "Annual Inflation % change (winsorised)"
+      )
+)
+
+cat("#### Table 10: Inflation persistence by Crisis Status\n\n")
+
+datasummary_df(
+  df %>%
+    filter(complete.cases(lag_inflation, inflation_clean)) %>%
+    group_by(crisis_year) %>%
+    summarise(
+      Correlation = cor(lag_inflation, inflation_clean),
+      N = n(),
+      .groups = "drop"
+    ),
+  fmt = 3
+)
+```
+Interpretation Notes:
+
+Strong persistence suggests dynamic panel model
+Justifies lagged dependent variable
+
+
+## 5.3. Correlation Structures
+
+```{r, correlation-structure}
+
+cat("#### Table 11: Correlation matrix — Key Variables\n\n")
+
+datasummary_correlation(
+  df %>% select(
+    inflation_clean,
+    cbi_extended,
+    unemployment_rate,
+    trade_percent_gdp,
+    gdp_growth,
+    m2_growth,
+    oil_price_avg
+  ),
+  fmt = 2
+)
+
+save_plot(
+  "09_correlation_structure.png",
+  df %>%
+    select(
+      cbi_extended,
+      inflation_clean,
+      unemployment_rate,
+      trade_percent_gdp,
+      gdp_growth,
+      m2_growth,
+      oil_price_avg
+    ) %>%
+    ggcorr(
+      label = TRUE,
+      label_round = 2,
+      layout.exp = 2        # ✅ KEY FIX: expands spacing
+    ) +
+    labs(
+      title = "Figure 9: Correlation Structure of Key Macroeconomic Variables"
+    ) +
+    theme(
+      plot.margin = margin(12, 12, 12, 24)  # small extra breathing room
+    )
+)
+```
+
+Interpretation Notes:
+
+Multicollinearity risk?
+Structural relationships between macro variables?
+
+## 6. Key Conclusions and Summary
+
+```{r key-findings}
+cat("#### Table 11: Sample size under Common Restrictions\n\n")
+
+datasummary_df(
+  tibble::tibble(
+    Sample = c(
+      "Full Dataset",
+      "Non-missing Inflation",
+      "Non-missing Inflation & CBI",
+      "Baseline Regression Sample"
+    ),
+    Observations = c(
+      nrow(df),
+      sum(!is.na(df$inflation_clean)),
+      sum(!is.na(df$inflation_clean) & !is.na(df$cbi_extended)),
+      sum(complete.cases(
+        df$inflation_clean,
+        df$cbi_extended,
+        df$gdp_growth,
+        df$m2_growth
+      ))
+    )
+  )
+)
+```
+Key Findings (TO BE WRITTEN IN PROSE):
+
+Inflation exhibits [skewed / stable / volatile] distribution patterns
+CBI is [clustered / uniform], suggesting institutional rigidity or reform waves
+Preliminary evidence suggests a [negative / weak / nonlinear] relationship between CBI and inflation
+Crisis periods significantly increase inflation volatility
+Oil price shocks exhibit heterogeneous effects across exporter status
+Inflation is strongly persistent, justifying dynamic modelling approaches
+END OF EDA

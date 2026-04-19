@@ -13,9 +13,12 @@ ecc3479-research-project
 │   ├── raw/                    # Immutable source files (WDI, Romelli, EIA)
 │   └── clean/                  # df_panel_final.csv (Output of scripts)
 ├── src/
-│   ├── 01_data_cleaning.R      # Data Cleaning, Variable Creation and Preparatory
+│   ├── 01_data_cleaning.R      # Data cleaning and construction of final panel
+│   └── 02_eda_analysis.Rmd     # Exploratory data analysis (source)
 ├── outputs/                    # Figures, regression tables, and diagnostics
-├── docs/                       # Methodology notes and variable definitions
+│   ├── eda/                    # Explanatory Notes for the EDA Analysis conducted
+│   └── eda_figures/            # Exploratory data analysis (Graphs and Visual Outputs)
+├── docs/                       # Methodology Notes
 └── README.md                   # Project documentation and execution guide
 ```
 
@@ -39,10 +42,16 @@ To ensure reproducibility, the following environment is required:
     * `slider` (Rolling average calculations)
     * `readxl` (Importing Excel files)
     * `countrycode` (Importing ISO-A3 country codes for standardisation)
+    * `modelsummary` (Helps in creating professional summaries and tables)
+    * `scales` (Scaling Infrastructure to create customised plots)
+    * `naniar` (Helps in identifying and visualising missing variables and data points)
+    * `GGally` (Developing Correlation Matrices and Heatmaps)
 ---
 
 
 ## 🚀 How to Run from Scratch
+
+### 🚀 `01_data_cleaning.R`
 
 Before running the scripts, you must ensure the local directory is prepared:
 1.  **Clone the Repository**: `git clone [Your-Repo-URL]`
@@ -52,98 +61,29 @@ Before running the scripts, you must ensure the local directory is prepared:
 
 *Note: When the script is run, it ocassionally produces `object not found.` errors. If it does so, please run `1. Load libraries` code block first, and then run the rest of the code afterwards.`*
 
+### 🚀 `02_eda_analysis.Rmd`
+
+*Note: If you review the `output` folder, you can find the entire .md explanatory document and all associated figures and visual outputs with the EDA in there. These instructions apply if you wish to reproduce the entire EDA process on your own.*
+
+1. **Clone the repository and open R in the project root:** `r   getwd()` The working directory should be the project’s top-level folder.
+2. **Render the EDA Document:**
+`Rrmarkdown::render(`
+`input = "src/02_eda_analysis.Rmd",`  
+`output_file = "EDA.md",`  
+`output_dir  = "output/eda")`
+3. Open `output/eda/EDA.md` to read the EDA. All figures are saved in `output/eda_figures/`.
 ---
 
-## 🗃 Raw Data Inventory & Source Indicators
-The pipeline requires the following files in `data/raw/` for the cleaning script to execute correctly.
+## 🗃 Data Inventory & Source Indicators
 
-| File Name | Purpose | Source | Access Method |
-| :--- | :--- | :--- | :--- |
-| `AREAER_exchange-regime.csv` | De facto classification of exchange regimes, to be used as a further control to isolate exchange rate effects from price shocks | IMF AREAER eLibrary | 1. Open [IMF AREAER Library](https://www.elibrary-areaer.imf.org/Pages/ChapterQuery.aspx) and review **Manual Download Instructions** attached below this table.
-| `EIA_crudeoil-exports.csv` | Measure of crude oil including lease condensate exports (Mb/d), to be used to create a 'net crude oil exporter' variable which would be used to isolate the effects between oil importers and exporters | Energy Information Administration, US (EIA) | Access the [EIA Portal](https://www.eia.gov/international/data/world/petroleum-and-other-liquids/annual-crude-and-lease-condensate-exports) and download as an csv file.
-| `EIA_crudeoil-imports.csv` | Measure of crude oil including lease condensate imports (Mb/d), to be used to create a 'net crude oil exporter' variable which would be used to isolate the effects between oil importers and exporters | Energy Information Administration, US (EIA) | Access the [EIA Portal](https://www.eia.gov/international/data/world/petroleum-and-other-liquids/annual-crude-and-lease-condensate-imports) and download as an csv file.
-| `IMF_discount-rate.csv` | Measure of Discount Rate, percent per annum (further filtered in the script to remove other indicators). Will be used as a dedicated variable to ensure any effects on oil pricing based on discount rates are isolated. | IMF Monetary and Financial Statistics (MFS) Dataset | Access the [IMF Dataset](https://data.imf.org/en/datasets/IMF.STA:MFS_IR?indicator_id=DISR_RT_PT_A_PT) and download as an xlsx file. 
-| `Romelli_CBIData.xlsx` | Primary measure of Central Bank Independence, variables `cbie_extended` and `cbie_gmt` from the dataset will be used in our framework | Romelli, D., 2022. [The political economy of reforms in central bank design: evidence from a new dataset.](https://academic.oup.com/economicpolicy/advance-article/doi/10.1093/epolic/eiac011/6516019) Economic Policy, 37(112), pp. 641-688. Open Access | Visit [the CBI Data website](https://cbidata.org/) and click the 'excel' option to download the relevant files.
-| `WB_cpi-annual.xlsx` | Measure of annual consumer price inflation, percent per annum for each nation | World Bank Group | Visit the World Bank Data page and select [Indicator FP.CPI.TOTL.ZG](https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG). Download the data as an xlsx file. 
-| `WB_gdp-growth.xlsx` | Measure of GDP growth, annual percent change | World Bank Group | Visit the World Bank Data page and select [Indicator NY.GDP.MKTP.KD.ZG](https://data.worldbank.org/indicator/NY.GDP.MKTP.KD.ZG). Download the data as an xlsx file. 
-| `WB_m2-growth.xlsx` | Measure of Broad Money growth, percent per annum. Broad money is defined in the metadata section of the dataset and is an indicator of the volume of growth in `M2` money, which serves as a measure of impact by monetary policy | World Bank Group | Visit the World Bank Data page and select [Indicator FM.LBL.BMNY.ZG](https://data.worldbank.org/indicator/FM.LBL.BMNY.ZG). Download the data as an xlsx file. 
-| `WB_netlending.xlsx` | Measure indicating the extent to which government is either putting financial resources at the disposal of other sectors in the economy or abroad, or utilizing the financial resources generated by other sectors in the economy or from abroad. Will be used to isolate the impact of any fiscal-policy measures which may contribute to changes in oil prices. | World Bank Group | Visit the World Bank Data page and select [Indicator GC.NLD.TOTL.GD.ZS](https://data.worldbank.org/indicator/GC.NLD.TOTL.GD.ZS). Download the data as an xlsx file. 
-| `WB_trade-percent.xlsx` | Measure of trade, as a percent of the GDP for each nation | World Bank Group | Visit the World Bank Data page and select [Indicator NE.TRD.GNFS.ZS](https://data.worldbank.org/indicator/NE.TRD.GNFS.ZS). Download the data as an xlsx file. 
-| `WB_unemployment.xlsx` | Measure of unemployment, percent of total labour force per annum for each nation | World Bank Group | Visit the World Bank Data page and select [Indicator SL.UEM.TOTL.ZS](https://data.worldbank.org/indicator/SL.UEM.TOTL.ZS). Download the data as an xlsx file. 
-| `WB_pink-sheet.xlsx` | Historical measure of prices of several commodities over a long period of time. We will be filtering out the `Crude Oil, Average` for our evaluation purposes | World Bank Group | Visit the [linked page](https://thedocs.worldbank.org/en/doc/18675f1d1639c7a34d463f59263ba0a2-0050012025/world-bank-commodities-price-data-the-pink-sheet) and download the file `CMO-Historical-Data-Annual.xlsx` 
+### Raw Data
+Please review `docs/data_guide.md` for detailed instructions on accessing the data points.
 
+### Clean Data
+Please review `data/clean/data_codebook.md` for a complete set of variables contained in `df_panel_final.csv` and its interpretations.
 
-### Manual Download Instructions for `AREAER_exchange-regime.xlsx`**
-
-1. **Access the Source**
-Go to the [IMF AREAER eLibrary Query Tool](https://www.elibrary-areaer.imf.org/Pages/ChapterQuery.aspx).
-
-2. **Configure Query Parameters**
-Follow the step-by-step selection process in the IMF portal:
-
-| Step | Category | Action |
-| :--- | :--- | :--- |
-| **01** | **Years** | Click **"Select All"** → Click **"Next"** |
-| **02** | **Countries** | Click **"Select All"** → Click **"Next"** |
-| **03** | **Categories** | Select the following checkboxes: <br> • `973 - Conventional Peg` <br> • `159 - Stabilised Peg` <br> • `978 - Floating` <br> Then click **"Next"** twice. |
-| **04** | **Reporting** | Select: <br> • `Sort by Year, Country, Category` <br> • `Include IFS Code` <br> Then click **"Generate Content Report"**. |
-
-3. **Export and Save**
-1. Once the query results open in a new browser tab, locate the **"Excel"** link in the top right corner.
-2. Download the file.
-3. Rename the file to `AREAER_exchange-regime.csv`.
-4. Place the file in the `/data/raw` directory of this project.
-
-> **Note:** Ensure the filename is exact (case-sensitive) as the R scripts look specifically for `AREAER_exchange-regime.xlsx` to begin the cleaning process.
-
----
-
-## 🛠 Detailed Methodology
-The data processing in `src/01_data_cleaning.R` follows a rigorous econometric cleaning protocol:
-
-### 1. Panel Construction & Harmonisation
-Data was originally sourced in "Wide" format (years as columns). Using `pivot_longer`, these were transformed into a "Long" panel format. All datasets were merged using a **Left Join** onto a master `panel_skeleton` of 217 ISO-coded countries to ensure no "time-gaps" were created during the merge.
-
-### 2. The 15-Year Inclusion Rule
-To ensure the validity of **Country Fixed Effects** ($\alpha_i$), we apply a strict data-density threshold. Only countries providing at least **15 years** of valid inflation and CBI data are retained. This prevents "Short-T" bias, where a country with only 2–3 data points could incorrectly skew the cross-sectional average.
-
-### 3. Net Exporter Logic (EIA Data)
-The `is_net_exporter` dummy is not based on a single year. Instead, we calculate the **10-year rolling average** of a country's oil production vs. its domestic consumption. If $Production - Consumption > 0$, the country is classified as a Net Exporter. This ensures that "accidental" one-year exporters do not contaminate the primary treatment group.
-
-### 4. Winsorisation & Outlier Handling
-Inflation data is notorious for "Hyperinflationary Tails" (e.g., Zimbabwe, Venezuela). To prevent these extreme values from biasing the OLS coefficients, the `inflation_rate` variable was **Winsorised at the 1st and 99th percentiles**. This retains the observation but caps the extreme values to the nearest "reasonable" historical maximum.
-
-### 5. Interaction Term Construction
-To test the central hypothesis, an interaction term `oil_interaction` ($CBI \times OilPrice$) was generated. This allows the model to capture how the marginal effect of oil price shocks on domestic inflation changes as a Central Bank becomes more independent.
-
----
-
-## 📊 Variable Dictionary (`df_panel_final.csv`)
-
-| Category | Variable | Definition | Unit / Scale | Source | Econometric Justification |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Identifiers** | `iso_code` | Unique 3-letter country code | ISO 3166-1 | ISO | Unique cross-sectional identifier for panel alignment. |
-| | `country_name` | Full name of the nation | Name | - | Human-readable label for data validation. |
-| | `year` | Observation year | 1990–2024 | - | Defines the time-series dimension for Fixed Effects. |
-| **Dependent** | `inflation_clean` | Annual CPI % change (Winsorised) | Percentage | World Bank | Measures price stability; Winsorised to mitigate hyperinflationary bias. |
-| **Primary** | `cbi_extended` | Multi-dimensional CBI Index | 0 (Low) – 1 (High) | Romelli (2022) | Main explanatory variable ($X$) testing central bank autonomy. |
-| **Controls** | `unemployment_rate` | Total % of labour force | Percentage | World Bank | Controls for domestic demand pressure and the Phillips Curve. |
-| | `trade_percent_gdp` | (Exports + Imports) / GDP | Percentage | World Bank | Controls for economic openness and global price discipline. |
-| | `gdp_growth` | Annual real GDP growth | Percentage | World Bank | Controls for business cycle fluctuations and output shocks. |
-| | `m2_growth` | Annual money supply growth | Percentage | World Bank | Controls for domestic monetary expansion and "money printing." |
-| | `net_lending` | Gov. Budget Balance / GDP | Percentage | World Bank | Controls for fiscal policy and deficit-driven inflation. |
-| | `ex_regime` | Exchange Flexibility Score | 0 (Peg / Fixed) - 1 (Float) | IMF AREAER | Controls for the "Nominal Anchor" effect of currency pegs. |
-| **Shocks** | `oil_price_avg` | Annual Brent Crude price | USD/Barrel | EIA | Captures external energy-related cost-push inflation. |
-| | `crisis_year` | Financial/Debt crisis dummy | Binary (0/1) | Various | Controls for structural breaks and systemic instability. |
-| **Structural** | `is_net_exporter` | Net Oil Exporter indicator | Binary (0/1) | EIA | Identifies the treatment group via 10-year rolling average. |
-| **Calculated** | `oil_interaction` | `is_net_exporter` × `oil_price` | Interaction | Calculated | Tests if CBI effectiveness varies by oil-dependency. |
-| | `cbi_x_regime` | `cbi_extended` × `ex_regime` | Interaction | Calculated | Tests if autonomy is more effective under specific pegs. |
-| **Technical** | `lag_cbi` | CBI Index ($t-1$) | 0–1 | Calculated | Addresses potential endogeneity and simultaneity. |
-| | `lag_inflation` | Inflation rate ($t-1$) | Percentage | Calculated | Captures path-dependency and inflation persistence. |
-| | `log_oil_price` | Natural log of oil price | Log-Value | Calculated | Normalises price scale for elasticities interpretation. |
-| | `log_gdp` | Natural log of real GDP growth | Log-Value | Calculated | Controls for country size and scale effects. |
-| | `inflation_rate` | Raw CPI % change | Percentage | World Bank | Baseline for comparison with the cleaned version. |
-| | `cbi_gmt` | GMT Component of CBI | 0–1 | Romelli (2022) | Alternative index for robustness checks. |
+### Data Cleaning Methodology
+Please review `docs/econometric_cleaning.md` for details surrounding the processes involved in cleaning the raw data. 
 
 ---
 
@@ -160,8 +100,8 @@ To test the central hypothesis, an interaction term `oil_interaction` ($CBI \tim
 
 **Institutional Affiliation:** Monash University
 
-**Date:** March 2026  
+**Date:** April 2026  
 
 This repository was developed for academic assessment purposes (Unit ECC3479). All rights are reserved. The code and documentation provided herein are the original work of the author. Redistribution or commercial use of this material is prohibited without explicit consent.
 
-**Status:** Data Pipeline Validated (N=146, T=35)
+**Status:** Initial Exploratory Data Analysis completed
