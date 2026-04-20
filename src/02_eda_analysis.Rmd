@@ -6,7 +6,7 @@ output:
   html_document:
     toc: true
     toc_depth: 3
-    toc_float: true
+    toc_float: false
     theme: cosmo
     highlight: tango
     self_contained: true
@@ -45,8 +45,10 @@ knitr::opts_chunk$set(
   echo = FALSE,
   warning = FALSE,
   message = FALSE,
-  fig.width = 10,
-  fig.height = 7,
+  fig.width = 6.5,
+  fig.height = 4.5,
+  fig.align = "center",
+  out.width = "80%",
   dev = "png",
   dpi = 300
 )
@@ -92,6 +94,32 @@ theme_set(
       plot.margin = margin(12, 12, 12, 12)
     )
 )
+
+options(modelsummary_html_table_width = "70%")
+
+cat("
+<style>
+.main-container {
+  max-width: 900px;
+  margin: auto;
+}
+.table {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.table-responsive {
+  display: flex !important;
+  justify-content: center !important;
+}
+
+.kable-table {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+</style>
+")
 ```
 
 ## 1. Data Structure and Cleaning Diagnostics
@@ -102,12 +130,7 @@ theme_set(
 glimpse(df)
 ```
 
-Interpretation Notes:
-
-Unit of observation is country-year panel data
-Check whether panel is balanced or unbalanced
-Identify obvious missing data or structural irregularities
-
+The dataset is a country–year panel comprising 4,603 observations across 24 variables, with the unit of observation clearly defined as country‑year. Key macroeconomic variables such as inflation, GDP growth, and nominal interest rates are observed annually from the mid‑2000s onward, while institutional variables like central bank independence display limited within‑country variation over time, consistent with gradual or discrete reforms. The panel is unbalanced, with systematic missingness concentrated in policy and financial variables (e.g. money growth, net lending, exchange rate regime), reflecting data availability rather than coding errors. Lagged variables (`lag_inflation`, `lag_cbi`) and interaction terms are structurally missing in initial years by construction. Cleaning procedures—most notably winsorisation of inflation—alter only a small share of observations and address extreme tail behaviour without materially changing central tendencies. Overall, the structure is appropriate for panel estimation but necessitates careful sample restriction and dynamic modelling choices.
 ### 1.2 Panel Structure
 
 #### Table 1: Panel Dimensions
@@ -122,9 +145,7 @@ datasummary_df(
   ))
 ```
 
-Interpretation Notes:
-
-A
+This table summarises the overall structure of the panel dataset used in the analysis. The sample contains 4,603 total observations covering 146 countries over a maximum span of 34 years, from 1990 to 2023. This structure reflects a moderately long macroeconomic panel with broad cross‑country coverage and sufficient time depth for dynamic analysis. The wide country dimension supports cross‑sectional variation, while the multi‑decade time span allows the study of medium‑ and long‑run relationships. However, the number of observations relative to the balanced maximum indicates that the panel is unbalanced, which motivates careful treatment of missing data and lagged variables in subsequent analysis.
 
 #### Table 2: Coverage of years per country
 ```{r, coverage-years-per-country}
@@ -143,8 +164,10 @@ datasummary_df(
 )
 ```
 
-I
+This table describes the distribution of time coverage across countries in the panel. The median and maximum number of observed years per country is 34, indicating that at least half of countries are observed for the full sample period. The lower tail shows more limited coverage, with the minimum at 15 years and the 25th percentile at 31 years. The mean coverage of approximately 31.5 years suggests that most countries enter the sample early and remain for most of the period. Overall, the panel is close to balanced for a large share of countries, which strengthens the reliability of time‑series patterns while still requiring robustness checks to account for countries with less complete histories with respect to fiscal and monetary policy.
+
 ### 1.3 Missingness Structure
+
 ```{r, missing-data-structure}
 
 save_plot(
@@ -164,12 +187,6 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
-
-Are missing values random or systematic?
-Which variables are most affected?
-Implications for regression bias or sample selection
-
 #### Table 3: Countries with highest missingness (key variables)
 ```{r, missingness-by-country}
 datasummary_df(
@@ -188,8 +205,9 @@ datasummary_df(
 )
 ```
 
-Interpretation Notes:
+Figure 1 and Table 3 illustrate the proportion of missing observations for each variable in the dataset. Missingness is most pronounced for regime classification variables, particularly `ex_regime` and `cbi_x_regime`, where over 75% of observations are missing, reflecting limited historical or institutional coverage. Policy variables such as the discount rate and net lending display moderate missingness, while macroeconomic controls including unemployment, inflation lags, and central bank independence lags have very low missing rates. Trade openness and money growth fall in between. The uneven pattern of missing data motivates selective variable inclusion across specifications and highlights the trade‑off between model richness and sample size in later regressions.
 
+"The systematic missingness in `ex_regime` and its interaction terms (exceeding 75%) introduces a significant risk of selection bias. Preliminary analysis suggests that countries with complete exchange rate data are predominantly more developed or have more stable reporting institutions, whereas missing values are concentrated in earlier periods and emerging markets. Consequently, any findings regarding the interaction between central bank independence and exchange rate regimes should be interpreted as representative of this more stable subgroup rather than a universal global trend. Future regression models will require careful sample restriction to avoid results driven by this survivorship bias.
 
 ## 2. Summary Statistics
 
@@ -214,11 +232,7 @@ datasummary_skim(
 )
 ```
 
-Interpretation Notes:
-
-Assess volatility in inflation and macro variables
-Evaluate dispersion in CBI index
-Identify potential outliers or crisis-driven skewness
+This table summarises the distributional properties of key continuous variables. Inflation measures display substantial dispersion and skewness, particularly inflation_rate, where extreme values suggest crisis‑driven outliers. The cleaner inflation series shows lower central tendency and reduced tail risk, indicating that data cleaning materially affected volatility rather than levels. Money growth and GDP growth also exhibit heavy right tails, consistent with macroeconomic instability in certain country‑years. In contrast, the extended central bank independence index is tightly distributed, reflecting gradual institutional change over time. Trade openness shows wide dispersion and implausibly large maxima for small open economies, suggesting scale heterogeneity rather than data error. Overall, the distributions largely align with macroeconomic expectations, but skewness and outliers motivate robustness checks, potential winsorisation, or transformation when modelling correlations and regression relationships.
 
 ### 2.2 Binary and Dummy Variables
 
@@ -238,6 +252,8 @@ datasummary_balance(
 )
 ```
 
+ This table documents the composition and macroeconomic characteristics of fixed (N=492) versus floating (N=452) exchange rate regime observations, indicating a broadly balanced sample across regimes. Floating regimes exhibit substantially lower average inflation (3.1% vs 6.5%) and discount rates, consistent with greater monetary policy independence. Fixed regimes display higher trade openness and slightly stronger net lending positions, aligning with credibility and trade‑integration arguments. Differences in GDP growth and unemployment are modest, suggesting weak unconditional growth effects of regime choice. Crisis incidence and oil price exposure are present in both groups, though interaction terms are larger under floating regimes, suggesting heterogeneous shock transmission. These patterns indicate that regime effects are unlikely to be well captured by a simple dummy alone, motivating regime‑specific interactions in subsequent models.
+
 #### Table 6: Net Oil Exporter Composition
 
 ```{r, summary-oil-exporter}
@@ -253,6 +269,8 @@ datasummary_balance(
     )
 )
 ```
+
+This table splits the sample into net oil importers (N=3,526) and exporters (N=1,077), revealing a noticeably skewed composition toward importers. Oil exporters experience substantially higher inflation, inflation volatility, and money growth dispersion, consistent with commodity‑driven macroeconomic cycles. Exporters also display stronger net lending balances, reflecting resource‑related external surpluses. Institutional measures such as central bank independence are comparable across groups, suggesting that observed macro differences are driven by exposure to oil price shocks rather than policy frameworks. The large variance in inflation and money growth among exporters highlights potential heteroskedasticity and non‑linear responses, motivating interaction terms and subgroup robustness checks rather than pooled estimation.
 
 #### Table 7: Crisis Year Decomposition
 
@@ -270,11 +288,7 @@ datasummary_balance(
 )
 ```
 
-Interpretation Notes:
-
-What share of countries are floating vs pegged?
-How frequent are crisis periods?
-Is sample composition balanced or skewed?
+This table contrasts non‑crisis (N=4,026) and crisis‑year (N=577) observations, indicating that crisis periods account for roughly 12–13% of the sample. Crisis years are associated with sharply lower GDP growth, weaker net lending, and higher unemployment, consistent with adverse macroeconomic conditions. Inflation averages are lower during crises, likely reflecting post‑shock stabilisation, demand contractions, or policy intervention rather than structural improvement. Monetary policy variables show lower discount rates and reduced money growth, indicating accommodative responses. The stark differences in lagged inflation and oil‑interaction terms suggest strong dynamic and amplification effects, raising concerns about aggregation bias. These patterns motivate explicit crisis controls and interaction terms to avoid conflating normal‑period and crisis‑driven relationships.
 
 ## 3. Distributional Analysis
 
@@ -305,11 +319,9 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
+Table 8 documents the extent and impact of inflation winsorisation. Raw inflation ranges from −16.12% to 2,377.13%, reflecting extreme hyperinflation episodes that dominate scale and variance. After winsorisation, the support is restricted to −5.00% and 100.00%, truncating only 1.87% of observations. This adjustment substantially reduces the influence of rare but extreme tail events while preserving the majority of within‑sample variation. Importantly, the lower bound change is minimal relative to the upper tail, confirming that skewness is driven almost entirely by positive inflation shocks. The limited proportion of altered observations suggests that winsorisation improves statistical properties without materially distorting central tendencies, supporting its use in downstream correlation and regression analysis.
 
-Skewness indicates presence of extreme inflation episodes
-Justifies winsorisation strategy
-Check for fat tails / crisis clustering
+The winsorised inflation distribution remains strongly right‑skewed, with a pronounced mass below 10% and a long upper tail extending to the imposed 100% cap. Density peaks occur around low single‑digit inflation rates, consistent with typical macroeconomic environments, while the persistent upper tail indicates clustering of high‑inflation episodes rather than isolated outliers. The absence of excessive mass at the truncation point suggests that winsorisation removed extreme leverage without inducing artificial bunching. These features imply that linear specifications may understate tail risk and that heteroskedasticity remains a concern. The visual evidence supports robustness checks using alternative functional forms or quantile‑based approaches, particularly when inflation is the dependent variable.
 
 ### 3.2 CBI Distribution
 
@@ -326,11 +338,7 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
-
-Is institutional reform gradual or stepwise?
-Are countries clustered at low/high independence?
-
+The central bank independence (CBI) index is bounded between approximately 0.1 and 0.9, with clear clustering around mid‑range values near 0.5–0.6 and secondary mass at higher independence levels above 0.75. The absence of a smooth unimodal distribution suggests that institutional reform occurs in discrete steps rather than continuously. Very low independence observations are rare, indicating limited representation of fully dependent monetary authorities in the sample. This distributional shape implies that marginal increases in CBI may have heterogeneous effects depending on starting levels, motivating non‑linear specifications or threshold effects instead of a purely linear treatment in identification equations.
 
 ## 4. Macroeconomic Validity and Identification Structure
 
@@ -352,11 +360,7 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
-
-Does higher CBI reduce inflation?
-Linear vs non-linear structure
-Evidence for credibility theory
+This scatter plot shows a negative first‑order relationship between central bank independence and inflation. Moving from a CBI of approximately 0.3 to 0.8 is associated with a visible decline in average inflation and a compression of the upper tail. However, the relationship is clearly non‑linear: inflation dispersion falls sharply at moderate CBI levels and flattens at higher values. High‑inflation observations above 50% are concentrated at lower and mid‑range CBI, while high‑CBI observations cluster tightly below 10% inflation. This pattern is consistent with credibility‑based theories of monetary policy and cautions against interpreting a single linear coefficient as causal across the full support.
 
 ### 4.2 Crisis Effects on Inflation
 
@@ -375,10 +379,7 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
-
-Crisis increases mean inflation?
-Higher variance during crises?
+The boxplots indicate higher dispersion of inflation during crisis periods, with visibly longer upper tails compared to non‑crisis years. Median inflation is modestly higher in crisis periods, but the dominant difference lies in variance rather than location. Extreme observations exceeding 50% inflation occur far more frequently during crises, while non‑crisis inflation remains tightly concentrated below 15%. These patterns suggest that crises amplify volatility rather than uniformly shifting inflation upward. Ignoring crisis interactions risks conflating normal‑period dynamics with tail‑driven episodes, pointing to the necessity of explicit crisis dummies and interaction terms in regression specifications.
 
 ### 4.3 Oil Shock Heterogeneity
 
@@ -409,12 +410,9 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
+This figure shows heterogeneous inflation responses to oil price levels by trade status. At low oil prices (around USD 20–30 per barrel), net oil exporters exhibit inflation rates exceeding 20%, compared to roughly 17–18% for importers. As prices rise toward USD 50, inflation falls sharply for both groups, but more steeply for exporters. At higher prices (USD 75–100), inflation converges to approximately 6–7% for both groups, with overlapping confidence bands. The non‑monotonic and group‑specific response indicates asymmetric pass‑through and suggests that oil price effects operate through different channels depending on trade exposure. This strongly motivates interaction terms between oil prices and net exporter status rather than pooled oil coefficients.
 
-Do exporters hedge oil shocks better?
-Asymmetric pass-through effects?
-
-## 5. Institutional Heterogeneity and Simpson's Paradox
+## 5. Institutional Heterogeneity
 
 ### 5.1 Exchange Rate Regime Interaction
 
@@ -444,10 +442,7 @@ save_plot(
 )
 ```
 
-Interpretation Notes:
-
-Does regime alter CBI effectiveness?
-Evidence of Simpsons paradox?
+Figure 7 shows clear regime‑specific heterogeneity in the relationship between central bank independence (CBI) and inflation. Under floating regimes, the fitted relationship is strongly negative, with higher CBI associated with materially lower inflation and reduced dispersion. Under fixed regimes, the slope is close to flat, with inflation clustered between roughly 0–10% across the CBI support. This divergence suggests that pooling regimes obscures meaningful heterogeneity: a negative unconditional CBI–inflation correlation may be driven entirely by floating regimes. This pattern constitutes visual evidence consistent with Simpson’s Paradox, where aggregation masks opposing or null subgroup relationships. The result implies that institutional credibility operates primarily when monetary policy autonomy is preserved, motivating regime‑specific interaction terms in the identification strategy.
 
 ### 5.2 Inflation Persistence
 
@@ -490,6 +485,8 @@ save_plot(
       )
 )
 ```
+
+Table 9 and Figure 8 document strong inflation persistence. The contemporaneous correlation between winsorised inflation and its lag is 0.265 based on 4,557 observations, indicating a meaningful first‑order dynamic relationship. Figure 8 shows a tight clustering around the 45‑degree line at low inflation levels, with greater dispersion at higher values, consistent with state‑dependent persistence. Persistence is substantially stronger during crisis years: Table 10 reports a correlation of 0.593 for crisis periods (N=575) compared to 0.269 for non‑crisis periods (N=3,882). This near‑doubling of persistence during crises highlights the importance of dynamics and temporal dependence. These results strongly justify the inclusion of lagged inflation in a dynamic panel framework and caution against static specifications that may suffer from omitted persistence bias.
 
 #### Table 10: Inflation persistence by Crisis Status
 ```{r, inflation-persistence-crisis}
@@ -543,25 +540,28 @@ save_plot(
     ggcorr(
       label = TRUE,
       label_round = 2,
-      layout.exp = 2        # ✅ KEY FIX: expands spacing
+      # --- ADJUSTMENTS START HERE ---
+      layout.exp = 3,      # Increase this slightly more
+      hjust = 0.85,        # Moves text horizontally away from the tiles
+      size = 4,            # Shrinks text slightly to prevent overlap
+      # ------------------------------
+      nbreaks = 5
     ) +
     labs(
       title = "Figure 9: Correlation Structure of Key Macroeconomic Variables"
     ) +
     theme(
-      plot.margin = margin(12, 12, 12, 24)  # small extra breathing room
+      plot.title = element_text(hjust = 0.5), # Centers the title
+      plot.margin = margin(12, 12, 12, 12)
     )
 )
 ```
 
-Interpretation Notes:
-
-Multicollinearity risk?
-Structural relationships between macro variables?
+Table 11 and Figure 9 summarise pairwise correlations among key macroeconomic variables. Inflation is positively correlated with money growth (ρ = 0.33) and negatively correlated with central bank independence (ρ = −0.15), consistent with monetary theory. CBI is positively correlated with oil prices (ρ = 0.30) and trade openness (ρ = 0.19), indicating potential structural co‑movement rather than direct causality. Most remaining correlations are small in magnitude (|ρ| < 0.15), suggesting limited multicollinearity concerns in baseline regressions. However, the clustering of inflation, money growth, and oil prices implies that omitted interaction terms may bias coefficients. Overall, the correlation structure supports multivariate modelling but cautions against naïve bivariate interpretation of institutional effects.
 
 ## 6. Key Conclusions and Summary
 
-#### Table 11: Sample size under Common Restrictions
+#### Table 12: Sample size under Common Restrictions
 ```{r key-findings}
 datasummary_df(
   tibble::tibble(
@@ -585,12 +585,10 @@ datasummary_df(
   )
 )
 ```
-Key Findings (TO BE WRITTEN IN PROSE):
+#### Key Findings:
 
-Inflation exhibits [skewed / stable / volatile] distribution patterns
-CBI is [clustered / uniform], suggesting institutional rigidity or reform waves
-Preliminary evidence suggests a [negative / weak / nonlinear] relationship between CBI and inflation
-Crisis periods significantly increase inflation volatility
-Oil price shocks exhibit heterogeneous effects across exporter status
-Inflation is strongly persistent, justifying dynamic modelling approaches
-END OF EDA
+The exploratory analysis reveals that inflation exhibits a highly right‑skewed and volatile distribution, driven by a small number of extreme hyperinflation episodes. Raw inflation ranges from −16.12% to 2,377.13%, while winsorisation caps the upper tail at 100% and affects only 1.87% of observations, indicating that tail risk rather than widespread noise drives skewness. Central bank independence (CBI) is clustered rather than uniformly distributed, with mass concentrated around mid‑range values (approximately 0.5–0.6) and secondary clustering above 0.75, consistent with discrete institutional reforms rather than gradual change.
+
+Bivariate analysis provides preliminary evidence of a negative but non‑linear relationship between CBI and inflation. While the unconditional correlation is modest (ρ = −0.15), disaggregated analysis shows that the negative association is concentrated entirely within floating exchange rate regimes, with little relationship under fixed regimes—visual evidence consistent with Simpson’s Paradox. Crisis periods, comprising roughly 12–13% of the sample, are associated with significantly higher inflation volatility and stronger persistence.
+
+Oil price shocks display pronounced heterogeneity by trade status. Net oil exporters experience larger inflation responses at low oil prices, but inflation converges across exporters and importers at higher price levels, implying asymmetric pass‑through mechanisms. Finally, inflation is strongly persistent, with a lagged correlation of 0.265 overall and 0.593 during crisis periods, justifying dynamic panel modelling approaches with lagged dependent variables.
