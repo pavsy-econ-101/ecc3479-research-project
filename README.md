@@ -63,7 +63,7 @@ Before running the scripts, you must ensure the local directory is prepared:
 
 ### 🚀 `02_eda_analysis.Rmd`
 
-*Note: If you review the `output` folder, you can find the entire .md explanatory document and all associated figures and visual outputs with the EDA in there. These instructions apply if you wish to reproduce the entire EDA process on your own.*
+*Note: If you review the `output` folder, you can find the entire .pdf explanatory document and all associated figures and visual outputs with the EDA in there. These instructions apply if you wish to reproduce the entire EDA process on your own.*
 
 1. **Clone the repository and open R in the project root:** `r   getwd()` The working directory should be the project’s top-level folder.
 2. **Render the EDA Document:**

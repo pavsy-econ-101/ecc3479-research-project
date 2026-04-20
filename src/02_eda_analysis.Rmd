@@ -7,8 +7,8 @@ output:
     toc: true
     toc_depth: 3
     toc_float: false
-    theme: cosmo
-    highlight: tango
+    theme: paper
+    css: custom.css
     self_contained: true
 ---
 
@@ -94,32 +94,21 @@ theme_set(
       plot.margin = margin(12, 12, 12, 12)
     )
 )
+```
 
-options(modelsummary_html_table_width = "70%")
-
-cat("
-<style>
-.main-container {
-  max-width: 900px;
-  margin: auto;
-}
-.table {
-  margin-left: auto !important;
-  margin-right: auto !important;
+```{css}
+body {
+  font-size: 16.5px;
+  line-height: 1.65;
 }
 
-.table-responsive {
-  display: flex !important;
-  justify-content: center !important;
-}
+h1 { font-size: 2.2em; }
+h2 { font-size: 1.8em; }
+h3 { font-size: 1.4em; }
 
-.kable-table {
-  margin-left: auto !important;
-  margin-right: auto !important;
+table {
+  font-size: 0.95em;
 }
-
-</style>
-")
 ```
 
 ## 1. Data Structure and Cleaning Diagnostics
@@ -131,6 +120,7 @@ glimpse(df)
 ```
 
 The dataset is a country–year panel comprising 4,603 observations across 24 variables, with the unit of observation clearly defined as country‑year. Key macroeconomic variables such as inflation, GDP growth, and nominal interest rates are observed annually from the mid‑2000s onward, while institutional variables like central bank independence display limited within‑country variation over time, consistent with gradual or discrete reforms. The panel is unbalanced, with systematic missingness concentrated in policy and financial variables (e.g. money growth, net lending, exchange rate regime), reflecting data availability rather than coding errors. Lagged variables (`lag_inflation`, `lag_cbi`) and interaction terms are structurally missing in initial years by construction. Cleaning procedures—most notably winsorisation of inflation—alter only a small share of observations and address extreme tail behaviour without materially changing central tendencies. Overall, the structure is appropriate for panel estimation but necessitates careful sample restriction and dynamic modelling choices.
+
 ### 1.2 Panel Structure
 
 #### Table 1: Panel Dimensions
@@ -446,16 +436,7 @@ Figure 7 shows clear regime‑specific heterogeneity in the relationship between
 
 ### 5.2 Inflation Persistence
 
-#### Table 9: Inflation Persistence Diagnostics
-```{r, inflation-persistence}
-datasummary_df(
-  df %>% summarise(
-    Correlation = cor(lag_inflation, inflation_clean, use = "complete.obs"),
-    N = sum(complete.cases(lag_inflation, inflation_clean))
-  ),
-  fmt = 3,
-)
-
+```{r, inflation-persistence-graph}
 save_plot(
   "08_inflation_persistence.png",
   df %>%
@@ -486,7 +467,17 @@ save_plot(
 )
 ```
 
-Table 9 and Figure 8 document strong inflation persistence. The contemporaneous correlation between winsorised inflation and its lag is 0.265 based on 4,557 observations, indicating a meaningful first‑order dynamic relationship. Figure 8 shows a tight clustering around the 45‑degree line at low inflation levels, with greater dispersion at higher values, consistent with state‑dependent persistence. Persistence is substantially stronger during crisis years: Table 10 reports a correlation of 0.593 for crisis periods (N=575) compared to 0.269 for non‑crisis periods (N=3,882). This near‑doubling of persistence during crises highlights the importance of dynamics and temporal dependence. These results strongly justify the inclusion of lagged inflation in a dynamic panel framework and caution against static specifications that may suffer from omitted persistence bias.
+#### Table 9: Inflation Persistence Diagnostics
+
+```{r, inflation-persistence-correlation}
+datasummary_df(
+  df %>% summarise(
+    Correlation = cor(lag_inflation, inflation_clean, use = "complete.obs"),
+    N = sum(complete.cases(lag_inflation, inflation_clean))
+  ),
+  fmt = 3
+)
+```
 
 #### Table 10: Inflation persistence by Crisis Status
 ```{r, inflation-persistence-crisis}
@@ -502,11 +493,7 @@ datasummary_df(
   fmt = 3
 )
 ```
-Interpretation Notes:
-
-Strong persistence suggests dynamic panel model
-Justifies lagged dependent variable
-
+Table 9, 10 and Figure 8 document strong inflation persistence. The contemporaneous correlation between winsorised inflation and its lag is 0.265 based on 4,557 observations, indicating a meaningful first‑order dynamic relationship. Figure 8 shows a tight clustering around the 45‑degree line at low inflation levels, with greater dispersion at higher values, consistent with state‑dependent persistence. Persistence is substantially stronger during crisis years: Table 10 reports a correlation of 0.593 for crisis periods (N=575) compared to 0.269 for non‑crisis periods (N=3,882). This near‑doubling of persistence during crises highlights the importance of dynamics and temporal dependence. These results strongly justify the inclusion of lagged inflation in a dynamic panel framework and caution against static specifications that may suffer from omitted persistence bias.
 
 ## 5.3. Correlation Structures
 
@@ -551,9 +538,8 @@ save_plot(
       title = "Figure 9: Correlation Structure of Key Macroeconomic Variables"
     ) +
     theme(
-      plot.title = element_text(hjust = 0.5), # Centers the title
-      plot.margin = margin(12, 12, 12, 12)
-    )
+      plot.title = element_text(hjust = 0.5)
+)
 )
 ```
 
