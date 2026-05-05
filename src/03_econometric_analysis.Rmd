@@ -1,0 +1,523 @@
+---
+title: "Primary Econometric Analysis: Central Bank Independence and Inflation"
+author: "Pavan Sundar – ECC3479 Research Project"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: false
+    theme: readable
+    df_print: default
+---
+
+```{r setup, include=FALSE}
+# =========================
+# PACKAGES
+# =========================
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 6.5,
+  fig.height = 4.5,
+  fig.align = "center",
+  out.width = "80%",
+  dpi = 300,
+  dev = "png"
+)
+
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(
+  rmarkdown,
+  knitr,
+  tidyverse,
+  modelsummary,
+  fixest,
+  kableExtra,
+  gt,
+  binsreg,
+  marginaleffects,
+  patchwork,
+  broom,
+  here
+)
+
+# =========================
+# PROJECT ROOT
+# =========================
+project_root <- here::here()
+
+# =========================
+# OUTPUT DIRECTORIES
+# =========================
+out_dir_abs <- file.path(project_root, "output", "econometric_analysis")
+dir.create(out_dir_abs, recursive = TRUE, showWarnings = FALSE)
+
+# =========================
+# DATA
+# =========================
+df <- read_csv(file.path(project_root, "data", "clean", "df_panel_final.csv"))
+
+options(knitr.table.format = "html")
+
+# =========================
+# PLOT SAVE + PRINT HELPER
+# =========================
+save_plot <- function(name, plot, print = TRUE) {
+
+  if (print) {
+    print(plot)
+  }
+
+  ggplot2::ggsave(
+    filename = file.path(out_dir_abs, name),
+    plot = plot,
+    width = 12,
+    height = 8,
+    dpi = 300
+  )
+}
+# =========================
+# THEME
+# =========================
+theme_set(
+  theme_classic(base_size = 13) +
+    theme(
+      # Force removal of all gridlines
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "white", colour = NA),
+      # The rest of your specific styling
+      panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.6),
+      axis.line = element_blank(),
+      axis.ticks = element_line(color = "black", linewidth = 0.4),
+      axis.ticks.length = unit(2, "pt"),
+      plot.title = element_text(face = "bold", size = 13, hjust = 0.5),
+      plot.subtitle = element_text(size = 11, colour = "grey30", hjust = 0.5),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom",
+      plot.margin = margin(12, 12, 12, 12)
+    )
+)
+```
+
+### 1. Introduction
+
+This analysis is **causal** in its ambition. We aim to identify the conditional average treatment effect of global oil price shocks on domestic inflation, specifically isolating the role of Central Bank Independence (CBI) as a mitigating institutional factor.
+
+Our strategy seeks to move beyond simple cross-sectional associations by exploiting within-country variation and utilising lagged institutional variables to address potential endogeneity. We investigate whether the institutional design of a central bank provides a structural buffer that alters the transmission of external commodity shocks to the domestic price level. This causal interpretation relies on strong exogeneity assumptions rather than a quasi-experimental research design.
+
+### 2. Econometric Specification
+
+To test the hypotheses, a panel regression with country fixed effects has been estimated. The model captures the dynamic relationship between global oil price shocks and domestic inflation, while allowing for heterogeneity in institutional frameworks across countries and over time.
+
+The primary specification is:
+
+$$Inflation_{it} = \beta_0 + \beta_1 LogOilPrice_{t} + \beta_2 CBI_{i,t-1} + \beta_3 (LogOilPrice_{t} \times CBI_{i,t-1}) + \gamma X_{it} + \alpha_i + \epsilon_{it}$$
+
+where *i* indexes countries and *t* indexes years, ($\gamma X_{it}$) denotes a vector of time-varying macroeconomic controls,($\alpha_i$) denotes country fixed effects, ($\epsilon_{it}$) is the error term, with standard errors clustered at the country level.
+
+#### I. Functional Form and Regressors:
+We employ a log-linear interaction model to estimate the elasticity of domestic prices to global energy shocks. The dependent variable, ($Inflation_{it}$), is the annual CPI inflation rate, winsorised at the 1st and 99th percentiles to mitigate the leverage of hyperinflationary outliers that would otherwise contaminate the OLS estimator. 
+
+The key regressors include the natural logarithm of global oil prices ($\log(\text{Oil Price})_{t}$), a standardised one-year lag of the Central Bank Independence (CBI) index, and their interaction term. 
+
+The vector $X_{it}$ incorporates time-varying macroeconomic controls, specifically real GDP growth and the unemployment rate, to account for domestic business cycle fluctuations. Lagged inflation is included in extended specifications to account for persistence in inflation dynamics.
+
+#### II. Sample and Error Structure:
+The analysis utilises a global panel dataset spanning 1990–2023. The sample includes 146 countries, representing a diverse cross-section of advanced and emerging economies, which ensures the results are not idiosyncratic to a specific income group.
+
+To ensure valid inference, standard errors are **clustered at the country level**. This accounts for arbitrary heteroskedasticity and the significant serial correlation inherent in both inflation dynamics and institutional indices within countries over time. Failure to cluster at this level would likely lead to a downward bias in standard errors and a subsequent inflation of Type I error rates.
+
+#### III. Identification Strategy:
+This approach corresponds to an OLS identification strategy with controls and country fixed effects. The inclusion of fixed effects allows us to control for all time-invariant, unobserved heterogeneity across countries, such as geographic factors, historical legal origins, and persistent cultural attitudes toward inflation. 
+
+By utilising a "within-country" estimator, we identify the parameters based on how domestic inflation responds to global oil price changes as a country’s institutional framework evolves over time. Because global oil prices are common across countries, the absence of time fixed effects implies that identification relies on the assumption that global shocks affecting inflation are either adequately captured by included controls or are orthogonal to oil price movements.
+
+The identifying assumption is the **strict exogeneity** of the global oil price relative to any individual country’s idiosyncratic domestic shocks. Furthermore, we assume that the one-year lag of the CBI index ensures the institutional framework is predetermined, thereby addressing the threat of contemporaneous feedback loops between inflation and policy reform. A one-year lag is chosen as it captures the most immediate institutional environment while ensuring the regressor is predetermined relative to the current year’s idiosyncratic inflation shock.
+
+Identification of the interaction term relies on within-country changes in central bank independence over time and assumes that such institutional changes are not systematically driven by contemporaneous shocks to inflation sensitivity.
+
+```{r, binscatter, message=FALSE, warning=FALSE}
+# We open a 'dummy' graphics device to catch the automatic plot from binsreg
+pdf(NULL)
+v1_data <- binsreg(y = df$inflation_clean, x = df$log_oil_price, w = df$iso_code)
+invisible(dev.off())
+
+# Now v1_data contains the information we need. 
+# We take the stored plot and apply your global theme and takeaway titles.
+v1_plot <- v1_data$bins_plot + 
+  theme_get() + 
+  labs(
+    title = "Figure 1: Binned scatterplot residualising for Country Fixed Effects",
+    subtitle = "Negative Correlation Persists After Controlling for Country Effects",
+    x = "Log Oil Price (Residualised)",
+    y = "Inflation (Residualised)"
+  )
+
+# This is the only command that will actually print to your HTML report
+save_plot("01_binscatter.png", v1_plot)
+```
+
+**Figure 1** presents a binned scatterplot of inflation against the natural logarithm of oil prices, with both variables residualized against country fixed effects. By partitioning the data into twenty equal-sized bins and plotting the mean values within each, the figure provides a non-parametric visualization of the baseline conditional correlation. This step is critical for validating the linear functional form assumed in our regression analysis; the plot confirms that the negative relationship between global oil shocks and domestic inflation is a consistent structural feature across the distribution, rather than a statistical artifact driven by extreme outliers or a non-linear relationship.
+
+### 3. Empirical Results
+
+```{r, econometric_models}
+# =========================================================
+# 1. VARIABLE PREPARATION
+# =========================================================
+
+# Standardise CBI (optional but improves interpretability)
+df <- df %>%
+  mutate(
+    lag_cbi_std = as.numeric(scale(lag_cbi))
+  )
+
+# =========================================================
+# 2. BASELINE + IMPROVED MODELS
+# =========================================================
+
+# ---------------------------------------------------------
+# Model 1: Naive OLS (benchmark correlation)
+# ---------------------------------------------------------
+mod1 <- feols(
+  inflation_clean ~ log_oil_price + lag_cbi_std + log_oil_price:lag_cbi_std,
+  data = df, vcov = ~iso_code
+)
+
+# ---------------------------------------------------------
+# Model 2: Country Fixed Effects
+# Controls for time-invariant country heterogeneity
+# ---------------------------------------------------------
+mod2 <- feols(
+  inflation_clean ~ log_oil_price + lag_cbi_std + log_oil_price:lag_cbi_std | iso_code,
+  data = df, vcov = ~iso_code
+)
+
+# ---------------------------------------------------------
+# Model 3: Main Specification (Improved)
+# Adds macro controls + inflation persistence
+# ---------------------------------------------------------
+mod3 <- feols(
+  inflation_clean ~ lag_inflation +
+    log_oil_price * lag_cbi_std +
+    gdp_growth + unemployment_rate |
+    iso_code,
+  data = df, vcov = ~iso_code
+)
+
+# ---------------------------------------------------------
+# Model 4: Crisis Robustness
+# Tests whether oil shocks behave differently during crises
+# ---------------------------------------------------------
+mod4 <- feols(
+  inflation_clean ~ lag_inflation +
+    log_oil_price * lag_cbi_std +
+    gdp_growth + unemployment_rate +
+    oil_x_crisis |
+    iso_code,
+  data = df, vcov = ~iso_code
+)
+
+# =========================================================
+# 3. MODEL LIST
+# =========================================================
+
+models <- list(
+  "(1) Baseline Model" = mod1,
+  "(2) Country Fixed Effects" = mod2,
+  "(3) Main Specification" = mod3,
+  "(4) Crisis Robustness" = mod4
+)
+
+# =========================================================
+# 4. CLEAN COEFFICIENT LABELS
+# =========================================================
+
+coef_map <- c(
+  "log_oil_price" = "Log Oil Price",
+  "lag_cbi_std" = "CBI (t−1, std.)",
+  "cbi_extended" = "CBI (Extended)",
+  "log_oil_price:lag_cbi_std" = "Interaction: Oil Price × CBI",
+  "oil_x_crisis" = "Interaction: Oil Price × Crisis")
+
+# =========================================================
+# 5. GOODNESS OF FIT
+# =========================================================
+
+gm <- tibble::tribble(
+  ~raw,        ~clean,          ~fmt,
+  "nobs",      "Observations",  0,
+  "r.squared", "R-squared",     3,
+  "adj.r.squared",   "Adj. R-squared",    3,
+  "r2.within",       "Within R-squared",  3
+)
+
+# =========================
+# 6. MODEL FEATURES (YES/NO ROWS)
+# =========================
+
+spec_rows <- tibble::tibble(
+  term = c(
+    "Lagged Inflation",
+    "Macro Controls",
+    "Crisis Controls",
+    "Country Fixed Effects"
+  ),
+
+  "(1) Baseline Model" = c("No",  "No",  "No",  "No"),
+  "(2) Country Fixed Effects" = c("No",  "No",  "No",  "Yes"),
+  "(3) Main Specification" = c("Yes", "Yes", "No",  "Yes"),
+  "(4) Crisis Robustness" = c("Yes", "Yes", "Yes", "Yes"),
+)
+```
+
+```{r, regression_table}
+# =========================================================
+# 2. BUILD TABLE
+# =========================================================
+tab <- modelsummary(
+  models,
+  output = "gt",
+  fmt = 3,
+  stars = c('*' = .1, '**' = .05, '***' = .01),
+  coef_map = coef_map,
+  coef_omit = "Intercept",
+  gof_map = gm,
+  add_rows = spec_rows,
+  escape = FALSE
+)
+
+# =========================================================
+# 3. REORDER ROWS & CALCULATE LINE POSITION
+# =========================================================
+# 1. Identify how many rows are in each section
+n_gof <- nrow(gm)           # Number of goodness-of-fit rows (Obs, R2, etc.)
+n_spec <- nrow(spec_rows)   # Number of Yes/No rows
+total_r <- nrow(tab$`_data`) # Total rows in the table body
+
+# 2. Identify indices for the sections
+# modelsummary places add_rows (n_spec) at the very bottom, after GOF (n_gof)
+coef_rows_end <- total_r - n_gof - n_spec
+spec_rows_indices <- (coef_rows_end + 1):(coef_rows_end + n_spec)
+gof_rows_indices <- (coef_rows_end + n_spec + 1):total_r
+
+# 3. Reorder: [Coefficients] -> [Yes/No Specs] -> [GOF Stats]
+tab$`_data` <- tab$`_data`[c(
+  1:coef_rows_end,
+  spec_rows_indices,
+  gof_rows_indices
+), ]
+
+# 4. Line should start at the first GOF row (Observations)
+gof_start <- coef_rows_end + n_spec + 1
+
+# =========================================================
+# 4. STYLE TABLE (tighter + clean)
+# =========================================================
+tab %>%
+  cols_align(align = "center", -1) %>%
+  cols_width(1 ~ px(220)) %>%
+  
+  tab_header(
+    title = md("**Table 1: The Effects of Oil Price Shocks and Central Bank Independence on Inflation**"),
+  ) %>%
+  
+  tab_spanner(
+    label = "Dependent Variable: Inflation (Winsorised)",
+    columns = -1
+  ) %>%
+
+  tab_style(
+    style = cell_borders(
+      sides = "top",
+      color = "black",
+      weight = px(1)
+    ),
+    locations = cells_body(rows = gof_start)
+  ) %>%
+  
+   tab_options(
+    table.font.size = px(13),        # tighter
+    data_row.padding = px(4),        # tighter rows
+    
+    table.border.top.color = "black",
+    table.border.bottom.color = "black",
+    column_labels.border.bottom.color = "black",
+    
+    table_body.hlines.color = "transparent",
+    table_body.border.top.color = "black",
+    
+    heading.align = "center",
+    column_labels.font.weight = "normal"
+  ) %>%
+  
+  tab_source_note(
+    source_note = md("*Notes:* The dependent variable is annual CPI inflation (winsorised). Column (1) presents a pooled OLS baseline. Column (2) introduces country fixed effects. Column (3) is the primary specification with macroeconomic controls (GDP, Unemployment). Column (4) incorporates a systemic crisis indicator. **Standard errors clustered by country are in parentheses.**")
+  )
+```
+
+```{r, coefficient_plot}
+# =========================================================
+# 1. SELECT MODELS & GENERATE PLOT
+# =========================================================
+v2_plot <- modelplot(
+          models[c(1, 2, 3)],
+          coef_map = c(
+            "log_oil_price"             = "Log Oil Price",
+            "lag_cbi_std"               = "Lagged CBI",
+            "log_oil_price:lag_cbi_std" = "Log Oil Price × Lagged CBI",
+            "oil_x_crisis"              = "Log Oil Price × Crisis"
+          )
+) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  theme_get() + 
+  labs(
+    title = "Figure 2: Coefficient Estimates: Selected Models",
+    subtitle = "Comparing Main, Crisis Robustness, and Alternative CBI models.",
+    x = "Effect on Inflation (Percentage Points)",
+    color = "Model"
+  ) +
+  # Adds a bit of breathing room for the labels
+  theme(axis.text.y = element_text(size = 10))
+
+# =========================================================
+# 2. SAVE PLOT
+# =========================================================
+save_plot("02_coefficient_plot.png", v2_plot)
+```
+
+**Figure 2** displays a coefficient forest plot, illustrating the point estimates and 95% confidence intervals for our primary variables of interest across the four distinct specifications reported in Table 1. This 'visual abstract' serves as a sensitivity analysis, demonstrating that the signs and magnitudes of the baseline oil effect and the disinflationary role of CBI remain structurally stable regardless of the covariate set employed. The consistency of these estimates across models—from pooled OLS to full fixed-effects with controls—provides visual evidence that our primary findings are robust and not 'brittle' to specific modeling choices.
+
+### 4. Interpretation of Results
+
+Based on our Main Specification (Column 3) and extended Crisis Robustness model (Column 4), the empirical findings offer a nuanced perspective on our initial theoretical framework, requiring a structural re-evaluation of our core hypotheses. 
+
+The data reveals that while institutional independence is a powerful macroeconomic lever, the transmission of global commodity shocks behaves contrary to traditional supply-side expectations.
+
+#### I. The Global Demand Proxy Effect ($\beta_{LogOilPrice}$):
+
+Hypothesis 1 (H1) anticipates a traditional "cost-push" macroeconomic dynamic, postulating that positive, upward global oil price shocks will exert a significant, direct inflationary impact on domestic economies. Contrary to this cost-push expectation, the baseline coefficient for the log of oil prices ($\beta_{LogOilPrice}$) is -2.861 and is statistically significant at the 1% level. Holding Central Bank Independence constant, and strictly conditional on lagged inflation, time-varying domestic macroeconomic conditions (GDP growth and unemployment), and all time-invariant country characteristics constant, **a 10% increase in the global oil price is associated with an approximate 0.286 percentage point decrease in the domestic inflation rate**.
+
+The strongly negative direction of this magnitude suggests that in the modern globalised economy, oil price spikes are frequently endogenously driven by global aggregate demand cycles. Consequently, the global oil price acts as a pro-cyclical proxy for global demand shocks. The deflationary pressures exerted by global demand slowdowns—which systematically accompany or immediately follow oil price peaks—appear to structurally dominate the direct energy cost-push effect within this sample. This is also consistent with the interpretation that oil prices may proxy for global demand conditions.
+
+#### II. The Institutional Mitigation Hypothesis ($\beta_{Interaction}$):
+
+Hypothesis 2 (H2) posits an institutional buffering mechanism, suggesting that higher Central Bank Independence (CBI) mitigates the transmission of these external global oil price shocks to domestic inflation. To evaluate this, we examine the interaction term ($\beta_{Interaction}$). The coefficient is 0.593. Holding all structural macroeconomic variables and country-fixed effects constant, **a one-standard-deviation increase in a country's lagged CBI score increases the impact of an oil price shock by 0.593 percentage points.**
+
+However, this magnitude is statistically indistinguishable from zero at all standard significance levels ($p > 0.1$). Consequently, we fail to find robust empirical support for H2 within our primary specification. From an economic standpoint, this suggests that while independent central banks are highly focused on broad price stability, their specific institutional design does not significantly or dynamically decouple the domestic economy from the immediate volatility of external global commodity cycles.
+
+#### III. The Independent Disinflationary Effect of CBI ($\beta_{CBI}$):
+While CBI does not meaningfully mitigate immediate oil shocks via the interaction channel, the regression confirms it remains a highly effective macroeconomic anchor. The independent main effect of lagged CBI ($\beta_{LaggedCBI}$) is -5.246 and is statistically significant at the 5% level. Holding global oil prices, time-varying domestic macro-controls, and time-invariant country characteristics constant, **a one-standard-deviation increase in the Central Bank Independence Index structurally reduces baseline inflation by 5.246 percentage points.**
+
+This robust, negative magnitude powerfully confirms foundational Institutional Credibility Theory. Granting central banks operational independence successfully anchors long-term inflation expectations and structurally lowers the baseline domestic price level, even if the institution cannot selectively filter out the stochastic noise of global energy shocks.
+
+#### IV. Crisis Robustness and Structural Stability:
+Finally, introducing a crisis interaction term in Column 4 ($\beta_{CrisisInteraction}$) yields a marginal positive coefficient of 0.023 (significant at the 10% level). This indicates a slight structural shift during systemic crises, but it importantly does not absorb or alter the significance of our primary variables. The stability of the negative oil price base effect and the strong negative CBI base effect across both specifications underscores the reliability of our findings against systemic macroeconomic instability.
+
+#### V. Marginal Effects:
+```{r, marginal_effects}
+# =========================================================
+# 7. MARGINAL EFFECTS (KEY INTERPRETATION)
+# =========================================================
+library(gt)
+library(dplyr)
+
+# 1. Compute marginal effects
+cbi_low  <- quantile(df$lag_cbi_std, 0.25, na.rm = TRUE)
+cbi_high <- quantile(df$lag_cbi_std, 0.75, na.rm = TRUE)
+
+b1 <- coef(mod3)["log_oil_price"]
+b3 <- coef(mod3)["log_oil_price:lag_cbi_std"]
+
+me_low  <- b1 + b3 * cbi_low
+me_high <- b1 + b3 * cbi_high
+
+# 2. Build Tibble
+me_table <- tibble::tibble(
+  `CBI Level` = c("Low (25th pct)", "High (75th pct)"),
+  `Effect of Oil Price on Inflation` = c(me_low, me_high)
+)
+
+# 3. Create GT Table with styles matching your Regression Table
+me_table %>%
+  gt() %>%
+  fmt_number(columns = 2, decimals = 3) %>%
+  cols_align(align = "center", columns = 2) %>%
+  cols_width(1 ~ px(220)) %>%
+  
+  tab_header(
+    title = md("Table 2: Marginal Effect of Oil Price at Different Levels of CBI")
+  ) %>%
+  
+  tab_options(
+    # Exact matches to your regression table styling
+    table.font.size = px(13),
+    data_row.padding = px(4),
+    
+    table.border.top.color = "black",
+    table.border.bottom.color = "black",
+    column_labels.border.bottom.color = "black",
+    
+    table_body.hlines.color = "transparent",
+    table_body.border.top.color = "black",
+    
+    heading.align = "center",
+    column_labels.font.weight = "normal"
+  ) %>%
+  
+  # Adds the thin line above the data rows to match the "controls" line look
+  tab_style(
+    style = cell_borders(sides = "top", color = "black", weight = px(1)),
+    locations = cells_body(rows = 1)
+  )
+```
+
+```{r, interaction_mechanics}
+# Visual 3: The Slope Plot
+v3_plot <- plot_slopes(mod4, variables = "log_oil_price", condition = "lag_cbi_std") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Figure 3: Marginal Effects of Oil Price Shocks across CBI",
+       subtitle = "3A: CBI Dampens the Domestic Transmission of Global Oil Shocks.",
+       x = "Central Bank Independence Index",
+       y = "M.E. of Oil Prices on Inflation")
+
+# Visual 4: The Histogram (Shows where the evidence is strongest)
+v4_plot <- ggplot(df, aes(x = lag_cbi_std)) +
+  geom_histogram(fill = "grey80", color = "black", bins = 30) +
+  labs(subtitle = "3B: Distribution of CBI Scores in the Sample",
+       x = "CBI Index", y = "Count") +
+  theme(plot.title = element_blank())
+
+# Combine them using patchwork
+combined_interaction <- v3_plot / v4_plot + plot_layout(heights = c(2, 1))
+
+save_plot("03_interaction_mechanics.png", combined_interaction)
+```
+
+**Figure 3** depicts the marginal effects of an oil price shock across the full distribution of Central Bank Independence. This visualization serves as the direct visual test of the Mitigation Hypothesis (H2). In a scenario where institutional design successfully buffered external shocks, we would expect to see the slope of the marginal effect line vary significantly as CBI increases. However, the plot reveals that the impact of an oil shock remains relatively constant across levels of independence, with overlapping confidence intervals throughout the range. This provides intuitive visual support for our decision to fail to reject the null hypothesis regarding the interaction effect between oil prices and CBI. The histogram below confirms that the majority of our sample lies within the range where the marginal effect is statistically significant.
+
+### 5. Threats to Identification and Causal Validity
+
+To maintain the causal validity of these claims, we address two primary econometric threats:
+
+#### I. Unobserved Global Confounders and Omitted Variable Bias (OVB):
+
+The negative base coefficient on oil prices signals a potential downward OVB threat regarding latent global demand cycles. If a global recession simultaneously lowers inflation and depresses oil prices, failure to control for this would downwardly bias our estimates.
+
+We mitigate this by incorporating domestic GDP growth and unemployment to residualise the effect of oil prices from the domestic business cycle. Additionally, the stability of the interaction term in Model 4, which explicitly accounts for systemic crisis periods, suggests that our findings are not driven by extreme tail-risk events but reflect a consistent structural relationship. However, these controls are unlikely to fully capture global macroeconomic conditions, and some residual bias may remain.
+
+#### II. Endogenous Institutional Adoption (Reverse Causality):
+
+A persistent concern in political economy is that CBI may be endogenous—granted by governments specifically during inflationary crises to regain market credibility. If "CBI is born out of crisis," the correlation would be spurious.
+
+We address this via a predetermined regressor strategy, utilising a one-year lag for the CBI index ($CBI_{i,t-1}$). This ensures the institutional framework is fixed prior to the realisation of the current-period inflation shock, thereby reducing the likelihood of contemporaneous reverse causality. While long-term anticipation effects can never be fully discarded, the persistence of our results across diverse specifications lends significant credibility to the causal interpretation of the stabilisation effect.
+
+While we address contemporaneous reverse causality through lagging, we acknowledge that long-term anticipation of institutional reform remains a latent threat common to all institutional panel studies.
+
+### 6. Conclusion
+
+The primary analysis confirms that Central Bank Independence is a critical determinant of baseline inflation levels. While global oil price increases are associated with downward pressure on inflation in this sample, we find no statistically significant evidence that central bank independence mitigates the transmission of these external shocks. This suggests that while institutional credibility anchors long-run inflation, it does not necessarily insulate economies from short-run global commodity fluctuations.

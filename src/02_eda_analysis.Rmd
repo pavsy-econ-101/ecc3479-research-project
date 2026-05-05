@@ -8,7 +8,6 @@ output:
     toc_depth: 3
     toc_float: false
     theme: paper
-    css: custom.css
     self_contained: true
 ---
 
@@ -94,21 +93,6 @@ theme_set(
       plot.margin = margin(12, 12, 12, 12)
     )
 )
-```
-
-```{css}
-body {
-  font-size: 16.5px;
-  line-height: 1.65;
-}
-
-h1 { font-size: 2.2em; }
-h2 { font-size: 1.8em; }
-h3 { font-size: 1.4em; }
-
-table {
-  font-size: 0.95em;
-}
 ```
 
 ## 1. Data Structure and Cleaning Diagnostics

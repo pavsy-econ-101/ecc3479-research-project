@@ -46,6 +46,14 @@ To ensure reproducibility, the following environment is required:
     * `scales` (Scaling Infrastructure to create customised plots)
     * `naniar` (Helps in identifying and visualising missing variables and data points)
     * `GGally` (Developing Correlation Matrices and Heatmaps)
+    * `fixest` (High‑dimensional fixed‑effects regression modeling)
+    * `marginaleffects` (Interpreting models via marginal effects)
+    * `gt` (Creating polished, publication‑ready tables)
+    * `binsreg` (Binned scatterplots with formal inference)
+    * `kableExtra` (Styling and enhancing kable‑based tables)
+    * `patchwork` (Combining multiple ggplots into layouts)
+    * `broom` (Cleaning Data into tibbles and dataframes)
+    * `rmarkdown` (Converting and Managing Rmarkdown files)
 ---
 
 
@@ -71,7 +79,19 @@ Before running the scripts, you must ensure the local directory is prepared:
 `input = "src/02_eda_analysis.Rmd",`  
 `output_file = "EDA.html",`  
 `output_dir  = "output/eda")`
-3. Open `output/eda/EDA.html` to read the EDA. All figures are saved in `output/eda_figures/`.
+3. **Open** `output/eda/EDA.html` to read the EDA. All figures are saved in `output/eda_figures/`.
+
+### 🚀 `03_econometric_analysis.Rmd`
+
+*Note: If you review the `output` folder, you can find the entire .pdf explanatory document and all associated figures and visual outputs with the Primary Econometric Analysis in there. These instructions apply if you wish to reproduce it on your own.*
+
+1. **Clone the repository and open R in the project root:** `r   getwd()` The working directory should be the project’s top-level folder.
+2. **Render the  Document:**
+`Rrmarkdown::render(`
+`input = "src/03_econometric_analysis.Rmd",`  
+`output_file = "Primary Econometric Analysis.html",`  
+`output_dir  = "output/econometric_analysis"`
+3.**Open** `output/econometric_analysis/Primary Econometric Analysis.html` to read the analysis document. All figures are saved in `output/econometric_analysis/`.
 ---
 
 ## 🗃 Data Inventory & Source Indicators
@@ -100,8 +120,8 @@ Please review `docs/econometric_cleaning.md` for details surrounding the process
 
 **Institutional Affiliation:** Monash University
 
-**Date:** April 2026  
+**Date:** May 2026  
 
 This repository was developed for academic assessment purposes (Unit ECC3479). All rights are reserved. The code and documentation provided herein are the original work of the author. Redistribution or commercial use of this material is prohibited without explicit consent.
 
-**Status:** Initial Exploratory Data Analysis completed
+**Status:** Primary Econometric Analysis completed
