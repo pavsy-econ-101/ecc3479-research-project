@@ -13,11 +13,15 @@ ecc3479-research-project
 │   ├── raw/                    # Immutable source files (WDI, Romelli, EIA)
 │   └── clean/                  # df_panel_final.csv (Output of scripts)
 ├── src/
-│   ├── 01_data_cleaning.R      # Data cleaning and construction of final panel
-│   └── 02_eda_analysis.Rmd     # Exploratory data analysis (source)
+│   ├── 01_data_cleaning.R              # Data cleaning and construction of final panel
+    ├── 02_eda_analysis.Rmd             # Exploratory Data Analysis (source)
+    ├── 03_econometric_analysis.Rmd     # Econometric Analysis (source)
+│   └── 04_robustness.Rmd               # Robustness Analysis (source)
 ├── outputs/                    # Figures, regression tables, and diagnostics
+│   ├── econometric_analysis/   # Explanatory Notes and Visuals used in the Primary Econometric Analysis
 │   ├── eda/                    # Explanatory Notes for the EDA Analysis conducted
-│   └── eda_figures/            # Exploratory data analysis (Graphs and Visual Outputs)
+    ├── eda_figures/            # Exploratory data analysis (Graphs and Visual Outputs)
+│   └── robustness_analysis/    # Explanatory Notes and Visuals used in the Robustness Analysis
 ├── docs/                       # Methodology Notes
 └── README.md                   # Project documentation and execution guide
 ```
@@ -59,6 +63,8 @@ To ensure reproducibility, the following environment is required:
 
 ## 🚀 How to Run from Scratch
 
+Please run the files in the order as they have been listed below to ensure you are able to review the entire analysis workflow, from cleaning raw data to the exploratory data analysis, and the econometric methods and robustness checks used throughout this Project. 
+
 ### 🚀 `01_data_cleaning.R`
 
 Before running the scripts, you must ensure the local directory is prepared:
@@ -90,8 +96,21 @@ Before running the scripts, you must ensure the local directory is prepared:
 `Rrmarkdown::render(`
 `input = "src/03_econometric_analysis.Rmd",`  
 `output_file = "Primary Econometric Analysis.html",`  
-`output_dir  = "output/econometric_analysis"`
-3.**Open** `output/econometric_analysis/Primary Econometric Analysis.html` to read the analysis document. All figures are saved in `output/econometric_analysis/`.
+`output_dir  = "output/econometric_analysis)"`
+3. **Open** `output/econometric_analysis/Primary Econometric Analysis.html` to read the analysis document. All figures are saved in `output/econometric_analysis/`.
+---
+
+### 🚀 `04_robustness.Rmd`
+
+*Note: If you review the `output` folder, you can find the entire .pdf explanatory document and all associated figures and visual outputs with the Robustness Analysis in there. These instructions apply if you wish to reproduce it on your own.*
+
+1. **Clone the repository and open R in the project root:** `r   getwd()` The working directory should be the project’s top-level folder.
+2. **Render the  Document:**
+`Rrmarkdown::render(`
+`input = "src/04_robustness.Rmd",`  
+`output_file = "Robustness Analysis.html",`  
+`output_dir  = "output/robustness_analysis)"`
+3. **Open** `output/robustness_analysis/Robustness Analysis.html` to read the analysis document. All figures are saved in `output/robustness_analysis/`.
 ---
 
 ## 🗃 Data Inventory & Source Indicators
@@ -124,4 +143,4 @@ Please review `docs/econometric_cleaning.md` for details surrounding the process
 
 This repository was developed for academic assessment purposes (Unit ECC3479). All rights are reserved. The code and documentation provided herein are the original work of the author. Redistribution or commercial use of this material is prohibited without explicit consent.
 
-**Status:** Primary Econometric Analysis completed
+**Status:** Robustness Checks completed

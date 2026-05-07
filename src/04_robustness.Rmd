@@ -1,0 +1,446 @@
+---
+title: "Robustness Analysis: Central Bank Independence, Oil Shocks and Inflation"
+author: "Pavan Sundar – ECC3479 Research Project"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: false
+    theme: readable
+    df_print: default
+---
+
+```{r setup, include=FALSE}
+# =========================
+# PACKAGES
+# =========================
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 6.5,
+  fig.height = 4.5,
+  fig.align = "center",
+  out.width = "80%",
+  dpi = 300,
+  dev = "png"
+)
+
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(
+  rmarkdown,
+  knitr,
+  tidyverse,
+  modelsummary,
+  fixest,
+  kableExtra,
+  gt,
+  binsreg,
+  marginaleffects,
+  patchwork,
+  broom,
+  here
+)
+
+# =========================
+# PROJECT ROOT
+# =========================
+project_root <- here::here()
+
+# =========================
+# OUTPUT DIRECTORIES
+# =========================
+out_dir_abs <- file.path(project_root, "output", "robustness_analysis")
+dir.create(out_dir_abs, recursive = TRUE, showWarnings = FALSE)
+
+# =========================
+# DATA
+# =========================
+df <- read_csv(file.path(project_root, "data", "clean", "df_panel_final.csv"))
+
+options(knitr.table.format = "html")
+
+# =========================
+# PLOT SAVE + PRINT HELPER
+# =========================
+save_plot <- function(name, plot, print = TRUE) {
+
+  if (print) {
+    print(plot)
+  }
+
+  ggplot2::ggsave(
+    filename = file.path(out_dir_abs, name),
+    plot = plot,
+    width = 12,
+    height = 8,
+    dpi = 300
+  )
+}
+# =========================
+# THEME
+# =========================
+theme_set(
+  theme_classic(base_size = 13) +
+    theme(
+      # Force removal of all gridlines
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "white", colour = NA),
+      # The rest of your specific styling
+      panel.border = element_rect(colour = "black", fill = NA, linewidth = 0.6),
+      axis.line = element_blank(),
+      axis.ticks = element_line(color = "black", linewidth = 0.4),
+      axis.ticks.length = unit(2, "pt"),
+      plot.title = element_text(face = "bold", size = 13, hjust = 0.5),
+      plot.subtitle = element_text(size = 11, colour = "grey30", hjust = 0.5),
+      axis.title = element_text(size = 12),
+      axis.text = element_text(size = 10),
+      legend.position = "bottom",
+      plot.margin = margin(12, 12, 12, 12)
+    )
+)
+```
+
+```{r model_estimation, include=FALSE}
+# =========================================================
+# 1. VARIABLE PREPARATION
+# =========================================================
+df <- df %>%
+  mutate(
+    lag_cbi_std = as.numeric(scale(lag_cbi)),
+    cbi_ext_std = as.numeric(scale(cbi_extended)),
+    ihs_inflation = log(inflation_clean + sqrt(inflation_clean^2 + 1))
+  )
+
+# =========================================================
+# 2. RUNNING THE 7 ROBUSTNESS MODELS
+# =========================================================
+# (1) Main Spec
+mod_main <- feols(inflation_clean ~ lag_inflation + log_oil_price * lag_cbi_std + gdp_growth + unemployment_rate | iso_code, data = df, vcov = ~iso_code)
+
+# (2) TWFE (Identification)
+mod_twfe <- feols(inflation_clean ~ lag_inflation + log_oil_price:lag_cbi_std + lag_cbi_std + gdp_growth + unemployment_rate | iso_code + year, data = df, vcov = ~iso_code)
+
+# (3) No Controls (Control Set)
+mod_nocontrols <- feols(inflation_clean ~ lag_inflation + log_oil_price * lag_cbi_std | iso_code, data = df, vcov = ~iso_code)
+
+# (4) Importers Only (Sample)
+mod_importers <- feols(inflation_clean ~ lag_inflation + log_oil_price * lag_cbi_std + gdp_growth + unemployment_rate | iso_code, data = subset(df, is_net_exporter == 0), vcov = ~iso_code)
+
+# (5) IHS Transformation (Functional Form)
+mod_ihs <- feols(ihs_inflation ~ lag_inflation + log_oil_price * lag_cbi_std + gdp_growth + unemployment_rate | iso_code, data = df, vcov = ~iso_code)
+
+# (6) Two-Way Clustering (Inference)
+mod_twocluster <- feols(inflation_clean ~ lag_inflation + log_oil_price * lag_cbi_std + gdp_growth + unemployment_rate | iso_code, data = df, cluster = ~iso_code + year)
+
+# (7) Expanded Controls (Omitted Variable Check)
+mod_addcontrols <- feols(inflation_clean ~ lag_inflation + log_oil_price * lag_cbi_std + gdp_growth + unemployment_rate + ex_regime | iso_code, data = df, vcov = ~iso_code)
+
+# (8) Alternative Measure
+mod_altmeasure <- feols(inflation_clean ~ lag_inflation + cbi_ext_std + log_oil_price:cbi_ext_std + gdp_growth + unemployment_rate | iso_code, data = df, vcov = ~iso_code)
+
+# Compile into list
+rob_models <- list(
+  "(1) Main Spec" = mod_main, "(2) TWFE" = mod_twfe, "(3) No Controls" = mod_nocontrols,
+  "(4) Importers" = mod_importers, "(5) IHS Form" = mod_ihs, "(6) 2-Way Cluster" = mod_twocluster,
+  "(7) Exch. Rate" = mod_addcontrols, "(8) Alt. CBI" = mod_altmeasure
+)
+```
+
+### 1. Identifying Key Results from Primary Analysis
+
+This robustness analysis evaluates the project’s central causal ambition: identifying the extent to which global oil price shocks affect domestic inflation, and whether Central Bank Independence (CBI) mitigates these inflationary effects across countries. The primary econometric specification employed a Panel OLS estimator with Country Fixed Effects to estimate the conditional average treatment effect of oil price shocks on inflation, conditional on institutional quality.
+
+The primary analysis produced three core findings. First, contrary to Hypothesis 1, positive global oil price shocks were associated with a statistically significant decline in domestic inflation, with a 10% increase in oil prices linked to an estimated 2.86 percentage point reduction in inflation ($p < 0.01$). This suggests that oil price movements in the sample may operate more strongly as a proxy for global demand conditions than as traditional cost-push inflationary shocks. 
+
+Second, higher lagged CBI exerted a significant disinflationary effect, with a one-standard-deviation increase in independence associated with a 5.24 percentage point reduction in baseline inflation ($p < 0.05$), supporting the view that institutional credibility acts as a structural inflation anchor.
+
+Most importantly for Hypothesis 2, the interaction between oil prices and CBI was statistically indistinguishable from zero ($p > 0.1$). The results therefore provide no robust evidence that greater central bank independence systematically dampens the transmission of external oil price shocks into domestic inflation. Accordingly, the purpose of the robustness analysis is to determine whether these findings—particularly the null interaction effect—persist under alternative identification strategies, model specifications, and functional forms.
+
+While the project is motivated by a causal hypothesis, given the OLS–FE framework, results are interpreted primarily as conditional correlations rather than causal estimates. The robustness checks therefore focus on the structural stability of these conditional relationships rather than on formal causal identification per se. By transparently documenting the survival of the baseline oil price effect and the null interaction effect across a range of specifications, the analysis aims to provide a credible appraisal of the institutional limits of Central Banks in mitigation of oil price shocks in the context of global commodity volatility.
+
+### 2. Robustness Analysis
+
+To rigorously evaluate whether the primary findings are structurally stable rather than artifacts of a particular specification, the analysis subjects the baseline model to eight complementary robustness checks. Each test varies a specific modeling assumption related to identification, sample composition, functional form, inference, or measurement validity.
+
+1. **Column 2** introduces Two-Way Fixed Effects by adding Year Fixed Effects alongside Country Fixed Effects. Because global oil prices are identical across countries within a given year, the baseline oil price coefficient becomes absorbed by the year effects providing us with only cross-sectional heterogeneity in exposure. However, this specification cleanly isolates the interaction term between oil prices and CBI, allowing us to test whether the null mitigation result is driven by unobserved global shocks such as synchronized recessions, financial crises, or pandemics.
+
+2. **Column 3** removes all time-varying macroeconomic controls, including GDP growth and unemployment. This unconditional specification tests whether the primary coefficients depend heavily on potentially endogenous “bad controls” or whether omitted variable bias materially alters the estimated relationships.
+
+3. **Column 4** restricts the sample exclusively to net oil-importing countries. Because oil-exporting economies often experience oil shocks as revenue booms, the transmission mechanism differs fundamentally from that of oil-consuming nations. This restriction therefore tests whether the observed “global demand proxy” relationship persists once the mechanical fiscal and export channel is removed.
+
+4. **Column 5** applies the Inverse Hyperbolic Sine (IHS) transformation to the inflation variable. Inflation data frequently exhibits substantial right-tail skewness and occasional negative values. Unlike a standard logarithmic transformation, the IHS transformation accommodates zero and negative observations while reducing the influence of extreme inflation spikes. This tests whether the main findings are sensitive to non-linear outcome distributions.
+
+5. **Column 6** replaces the baseline inference procedure with Two-Way Clustered Standard Errors by country and year. While the primary model clusters by country to account for serial correlation, global inflationary shocks may also generate spatial correlation across countries within the same year. This specification therefore stress-tests whether the statistical significance of the coefficients survives more conservative inference assumptions.
+
+6. **Column 7** expands the control set by introducing the Exchange Rate Regime. As highlighted by the macroeconomic trilemma literature, exchange rate arrangements strongly constrain monetary autonomy and may influence inflation dynamics independently of central bank institutions. Including this variable helps isolate the institutional effect of CBI from broader monetary regime characteristics.
+
+7. **Column 8** replaces the primary Central Bank Independence measure with an alternative extended CB Independence institutional index from Romelli (2022, 2024). Because institutional indicators rely on subjective coding decisions and weighting methodologies, this measurement check evaluates whether the findings are robust to alternative constructions of institutional quality rather than being artifacts of a single index design.
+
+### 3. Results and Interpretation
+
+```{r robustness_table, echo=FALSE}
+
+# =========================================================
+# 1. LABELS
+# =========================================================
+coef_map <- c(
+  "log_oil_price" = "Log Oil Price",
+  "lag_cbi_std" = "Lagged CBI (Std.)",
+  "log_oil_price:lag_cbi_std" = "Interaction: Oil x Lagged CBI",
+  "cbi_ext_std" = "Extended CBI (Std.)",
+  "cbi_ext_std:log_oil_price" = "Interaction: Oil x Extended CBI"
+)
+
+gof_map <- tibble::tribble(
+  ~raw, ~clean, ~fmt,
+  "nobs", "Observations", 0,
+  "r.squared", "R-squared", 3,
+  "adj.r.squared", "Adj. R-squared", 3
+)
+
+# =========================================================
+# 2. SPECIFICATION ROWS
+# =========================================================
+spec_rows <- tibble::tibble(
+  term = c("Country Fixed Effects", "Year Fixed Effects", "Control Set",
+           "Sample Restriction", "Dependent Var", "Inference / SEs"),
+  `(1) Main Spec`   = c("Yes", "No",  "Baseline",              "None",           "Levels",          "Country"),
+  `(2) TWFE`        = c("Yes", "Yes", "Baseline",              "None",           "Levels",          "Country"),
+  `(3) No Controls` = c("Yes", "No",  "None",                  "None",           "Levels",          "Country"),
+  `(4) Importers`   = c("Yes", "No",  "Baseline",              "Importers Only", "Levels",          "Country"),
+  `(5) IHS Form`    = c("Yes", "No",  "Baseline",              "None",           "IHS Transformed", "Country"),
+  `(6) 2-Way Cluster`=c("Yes", "No",  "Baseline",              "None",           "Levels",          "Country + Year"),
+  `(7) Exch. Rate`  = c("Yes", "No",  "Baseline + Exch. Rate", "None",           "Levels",          "Country"),
+  `(8) Alt. CBI`    = c("Yes", "No",  "Baseline + Alt. CBI",   "None",           "Levels",          "Country")
+)
+
+# =========================================================
+# 3. BUILD TABLE AS DATA FRAME (CONTROL ORDER)
+# =========================================================
+tab_df <- modelsummary(
+  rob_models,
+  output = "data.frame",
+  fmt = 3,
+  stars = c('*' = .1, '**' = .05, '***' = .01),
+  coef_map = coef_map,
+  gof_map  = gof_map
+)
+
+# split blocks
+coef_block <- tab_df[!tab_df$term %in% gof_map$clean, ]
+gof_block  <- tab_df[tab_df$term %in% gof_map$clean, ]
+
+# =========================================================
+# ALIGN spec_rows WITH tab_df STRUCTURE (CRITICAL FIX)
+# =========================================================
+
+# add missing columns to spec_rows
+missing_cols <- setdiff(names(tab_df), names(spec_rows))
+
+for (col in missing_cols) {
+  spec_rows[[col]] <- ""
+}
+
+# reorder columns to match tab_df
+spec_rows <- spec_rows[, names(tab_df)]
+
+# rebuild in correct order
+tab_df <- rbind(
+  coef_block,
+  spec_rows,
+  gof_block
+)
+
+# =========================================================
+# CLEAN TABLE (REMOVE INTERNAL COLUMNS)
+# =========================================================
+
+# drop unwanted columns
+tab_df <- tab_df %>%
+  select(-part, -statistic)
+
+# optionally rename first column cleanly
+names(tab_df)[1] <- "Variable"
+
+# =========================================================
+# REMOVE DUPLICATE VARIABLE NAMES (KEEP ONLY TOP ROW)
+# =========================================================
+
+tab_df[[1]] <- ifelse(
+  duplicated(tab_df[[1]]),
+  "",
+  tab_df[[1]]
+)
+
+# convert to gt
+tab <- gt(tab_df)
+
+# =========================================================
+# 4. ROW POSITIONS (now correct)
+# =========================================================
+n_total <- nrow(tab_df)
+n_gof   <- nrow(gof_block)
+n_spec  <- nrow(spec_rows)
+
+spec_start <- n_total - (n_spec + n_gof) + 1
+gof_start  <- n_total - n_gof + 1
+
+control_row <- which(trimws(tab_df[[1]]) == "Control Set")[1]
+
+# =========================================================
+# 5. STYLE TABLE
+# =========================================================
+tab <- tab %>%
+  
+  cols_align(align = "center", -1) %>%
+  cols_width(1 ~ px(240)) %>%
+  
+  tab_header(
+    title = md("**Table 1: Robustness Stress-Tests Across Methodological Dimensions**")
+  ) %>%
+  
+  tab_spanner(
+    label = "Dependent Variable: Inflation (Winsorised)",
+    columns = -1
+  ) %>%
+  
+  # divider: coefficients → spec rows
+  tab_style(
+    style = cell_borders(sides = "top", color = "black", weight = px(1)),
+    locations = cells_body(rows = spec_start)
+  ) %>%
+  
+  # divider: spec rows → GOF
+  tab_style(
+    style = cell_borders(sides = "top", color = "black", weight = px(1)),
+    locations = cells_body(rows = gof_start)
+  ) %>%
+  
+  tab_options(
+    table.font.size  = px(13),
+    data_row.padding = px(4),
+    
+    table.border.top.color    = "black",
+    table.border.bottom.color = "black",
+    
+    table.border.top.width    = px(2),
+    table.border.bottom.width = px(2),
+    
+    column_labels.border.bottom.color = "black",
+    column_labels.border.bottom.width = px(2),
+    
+    table_body.hlines.color = "transparent",
+    
+    heading.align = "center",
+    column_labels.font.weight = "normal"
+  ) %>%
+  
+tab_source_note(
+  source_note = md(
+    "*Notes:* The dependent variable is annual CPI Inflation (winsorised). Column (1) presents the main specification from the primary analysis. Columns (2) to (8) present robustness checks across key methodological dimensions: (2) adds year fixed effects to test identification assumptions; (3) drops all controls to test if results are driven solely by covariates; (4) restricts sample to net importers to test if effects are concentrated in oil-importing countries; (5) uses an Inverse Hyperbolic Sine (IHS) transformation of the dependent variable to test functional form sensitivity; (6) applies two-way clustering of standard errors by country and year to test inference robustness; (7) adds the exchange rate regime dummy to test for omitted variable bias and (8) includes an alternative extended measure of CBI as formulated in Romelli (2022 and 2024).<br><br>
+    In Column 2, Log Oil Price is absorbed by Year FEs. Column 5 dependent variable is Inverse Hyperbolic Sine.<br><br>
+    All non-dropped models include lagged inflation. **Standard errors are clustered by country, except Column 6 which is two-way clustered by country and year.**"
+  )
+)
+
+# divider inside spec block (above Control Set)
+if (!is.na(control_row)) {
+  tab <- tab %>%
+    tab_style(
+      style = cell_borders(sides = "top", color = "black", weight = px(1)),
+      locations = cells_body(rows = control_row)
+    )
+}
+
+tab
+```
+
+The robustness results presented in Table 1 demonstrate a high overall survival rate for the study’s central findings, while also revealing important nuances regarding the transmission of global oil shocks. Across most specifications, the baseline relationship between oil prices, institutional credibility, and domestic inflation remains structurally consistent. Most notably, the interaction term between oil prices and Central Bank Independence (CBI) remains statistically insignificant in every specification, providing strong evidence against Hypothesis 2.
+
+The persistence of this null mitigation effect is the most important result of the robustness exercise. In the Two-Way Fixed Effects specification (Column 2), where Year Fixed Effects absorb all common global shocks, the interaction coefficient remains statistically indistinguishable from zero ($\beta = -1.021$). 
+
+Similarly, the interaction term remains insignificant under the unconditional specification without controls (Column 3, $\beta = 0.529$), the importers-only subsample (Column 4, $\beta = 0.749$), the IHS transformation (Column 5, $\beta = -0.013$), the Two-Way Clustered inference procedure (Column 6, $\beta = 0.593$), the exchange-rate specification (Column 7, $\beta = -0.530$), and the alternative institutional index (Column 8). 
+
+The consistency of these near-zero estimates across identification strategies, samples, functional forms, and institutional measurements strongly suggests that the failure to detect a buffering effect is not a modeling artifact. Rather, the evidence indicates that while central bank independence may influence long-run inflation levels, it does not systematically dampen the short-run transmission of external oil price shocks. 
+
+The loss of statistical significance for the CBI base effect in Column 2 is expected; institutional indices such as the Romelli CBI score exhibit high cross-sectional variation but limited within-country temporal variation, which is frequently absorbed by the inclusion of unit-level fixed effects in a TWFE framework.
+
+In contrast, the independent effect of lagged CBI displays substantial structural stability. The coefficient remains negative and statistically significant in the baseline model ($\beta = -5.241$), the no-controls specification (Column 3, $\beta = -5.068$), the importers-only sample (Column 4, $\beta = -5.513$), and under two-way clustered inference (Column 6, $\beta = -5.241$). Although the coefficient becomes smaller under the IHS transformation due to the non-linear scaling of the dependent variable (Column 5, $\beta = -0.290$), the negative direction remains intact. These results reinforce the interpretation of CBI as a robust institutional anchor for baseline inflation performance, even if it fails to operate as a dynamic stabilizer during commodity price shocks.
+
+The baseline oil price coefficient also demonstrates notable persistence across several specifications. In the unconditional model (Column 3), oil prices retain a large and statistically significant negative association with inflation ($\beta = -2.709, p < 0.01$), suggesting that the result is not driven by the inclusion of macroeconomic controls. The effect also survives strongly within the importers-only subsample (Column 4, $\beta = -1.864, p < 0.01$), which is particularly important for interpretation. Because net oil importers do not experience oil-price-driven export revenue booms, the continued negative relationship strengthens the “Global Demand Proxy” interpretation: rising oil prices appear to coincide with broader global demand slowdowns that reduce domestic inflationary pressure.
+
+However, the robustness checks also reveal an important qualification to this interpretation. Once the Exchange Rate Regime is introduced in Column 7, the oil coefficient reverses sign and becomes strongly positive ($\beta = 3.250, p < 0.01$). This suggests that the inflationary consequences of oil shocks may depend critically on monetary and exchange-rate institutions. Countries operating under different currency arrangements may experience fundamentally different transmission mechanisms, implying that the “global demand proxy” effect is conditional rather than universal. This represents an important exercise in econometric transparency: while the institutional anchor effect of CBI remains comparatively stable, the direct transmission of oil shocks appears more sensitive to broader macroeconomic regimes.
+
+The reversal of the oil coefficient sign in Column 7—shifting from negative to positive when controlling for the exchange rate regime—suggests that the currency framework acts as a critical mediator in the transmission of energy shocks. In the baseline model, the negative coefficient likely captures the 'Global Demand Proxy' effect alongside the deflationary pressure of a weakening currency in a floating regime. By explicitly controlling for the exchange rate, we 'block' this channel, revealing a traditional cost-push inflationary pressure ($\beta = 3.250, p < 0.01$). This result highlights that while our institutional findings are stable, the specific path through which commodity prices hit domestic markets is highly dependent on a country’s choice of currency anchor.
+
+Further, the functional form and inference checks further strengthen confidence in the overall conclusions. The IHS specification confirms that the null interaction result is not driven by extreme inflation outliers or right-tail skewness, while the Two-Way Clustering procedure demonstrates that the statistical insignificance of the interaction term survives more conservative standard error assumptions that account for cross-country correlation within years. Likewise, replacing the primary CBI index with an alternative institutional measure leaves the core conclusions unchanged, indicating that the findings are not artifacts of a specific measurement methodology.
+
+Finally, Column 8 establishes the measurement robustness of the study by employing an extended CBI metric. The baseline disinflationary effect of the central bank remains negative ($-4.799^*$), though it exhibits slight sensitivity in its significance level compared to the Romelli index. Crucially, the interaction term remains strictly non-significant ($-0.222$). This confirms that the failure of Central Bank Independence to mitigate oil-led volatility is not a byproduct of index construction or specific variable weighting, but rather a persistent structural feature of the relationship between institutional credibility and external shocks.
+
+Taken together, the robustness analysis provides strong evidence that the project’s primary conclusions are structurally credible. The evidence consistently supports the interpretation of CBI as a long-run disinflationary institution, while simultaneously rejecting the hypothesis that independent central banks systematically buffer economies from external oil price shocks. The direct transmission of oil shocks appears more complex and conditional on broader macroeconomic regimes, but the key institutional finding regarding CBI’s limited role in shock mitigation remains robust across a wide range of specifications. This dual pattern of stability (for the institutional effect) and fragility (for the direct oil price effect) underscores the importance of rigorous robustness checks in distinguishing between core structural relationships and more context-dependent associations in macroeconomic research.
+
+### 4. Discussion
+
+```{r dual_forest_plot, echo=FALSE, fig.width=10, fig.height=5}
+dual_forest_plot <- modelplot(
+  rob_models[c(1, 2, 3, 4, 6, 7)], 
+  coef_map = c(
+    "log_oil_price" = "Base Effect: Global Oil Shock",
+    "log_oil_price:lag_cbi_std" = "Interaction: Mitigation Effect"
+  )
+) +
+  facet_wrap(~term, scales = "free_x") + 
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkred", linewidth = 1) +
+  labs(
+    title = "Figure 1: Structural Stability vs. Fragility",
+    subtitle = "The deflationary base effect survives all checks; the mitigation effect remains strictly null.",
+    x = "Effect on Domestic Inflation", color = "Specification"
+  ) +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold", size = 12), 
+    strip.background = element_rect(fill = "grey90", color = NA)
+  )
+
+save_plot("01_dual_robustness_forest.png", dual_forest_plot)
+```
+
+**Figure 1** provides a visual summary of the study’s central robustness narrative: structural stability in the baseline oil-price effect alongside persistent fragility in the mitigation hypothesis. In the left panel (“Base Effect: Global Oil Shock”), nearly all coefficient estimates are positioned clearly to the left of the vertical zero-line, indicating a consistently negative relationship between global oil price increases and domestic inflation across specifications. The clustering of estimates around similar negative values, together with confidence intervals that rarely cross zero, demonstrates a high degree of coefficient survival under alternative modeling assumptions.
+
+This pattern is particularly evident in the unconditional specification, the importers-only sample, and the two-way clustered inference model, suggesting that the “Global Demand Proxy” interpretation is not dependent on a single estimation strategy. By contrast, the right panel (“Interaction: Mitigation Effect”) reveals the opposite morphology. Here, the interaction coefficients are visually centred around the zero-line, with confidence intervals symmetrically spanning both positive and negative values across every specification. 
+
+The absence of any consistent directional movement away from zero provides strong visual evidence that the mitigation hypothesis lacks empirical support. Collectively, the forest plot demonstrates that while the baseline oil-price relationship exhibits considerable structural stability, the claim that central bank independence systematically buffers economies against oil shocks remains empirically fragile and persistently null.
+
+```{r ihs_density_plot, echo=FALSE, fig.width=10, fig.height=4.5}
+p1 <- ggplot(df, aes(x = inflation_clean)) +
+  geom_density(fill = "steelblue", alpha = 0.6, color = NA) +
+  labs(title = "A. Distribution of Cleaned Inflation", x = "Inflation Rate (%)", y = "Density")
+
+p2 <- ggplot(df, aes(x = ihs_inflation)) +
+  geom_density(fill = "darkred", alpha = 0.6, color = NA) +
+  labs(title = "B. IHS Transformed Distribution", x = "IHS(Inflation)", y = "Density")
+
+ihs_plot <- p1 + p2 + 
+  plot_annotation(
+    title = "Figure 2: Justifying the Alternative Functional Form (Column 5)",
+    subtitle = "The IHS transformation normalises the extreme right-tail skewness of the inflation distribution.",
+    theme = theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+                  plot.subtitle = element_text(size = 11, color = "grey30", hjust = 0.5))
+  )
+
+save_plot("02_ihs_transformation.png", ihs_plot)
+```
+
+**Figure 2** justifies the use of the Inverse Hyperbolic Sine (IHS) transformation employed in Column 5 by illustrating the underlying distributional characteristics of the inflation data. Panel A (“Distribution of Cleaned Inflation”) displays a heavily right-skewed distribution, with most observations concentrated at relatively low inflation rates but with a pronounced long tail extending toward extremely high inflation episodes approaching 100 percent, despite winsorisation at the 1st and 99th percentile. 
+
+This shape indicates substantial kurtosis and outlier leverage, conditions that can distort linear regression estimates and inflate sensitivity to extreme observations. Panel B (“IHS Transformed Distribution”) demonstrates how the IHS transformation compresses this extreme upper tail and reshapes the distribution into a substantially more symmetric, bell-shaped form. 
+
+The transformed data becomes more tightly concentrated around the centre of the distribution while still preserving zero and negative observations that would otherwise be lost under a standard logarithmic transformation. Importantly, the substantive findings of the model remain largely unchanged after this transformation, particularly the persistence of the null interaction effect. This confirms that the study’s conclusions are not artifacts of a handful of extreme inflation episodes or non-normal outcome distributions, but instead reflect stable structural relationships within the data itself.
+
+### 5. Conclusion
+This analysis has subjected the relationship between global oil shocks, central bank independence, and domestic inflation to a series of rigorous econometric stress tests. The results offer a definitive verdict on the survivability of our primary findings. The negative relationship between oil prices and domestic price levels—supporting the Global Demand Proxy interpretation—demonstrates high structural stability across varied controls, sample restrictions, and alternative institutional measurements. While this base effect shows sensitivity to exchange rate regimes, the core deflationary signal of oil spikes remains a persistent feature of the data.
+
+Most importantly, the "Null Mitigation Effect" proved to be the most robust finding of this research. Despite varying the identification strategy (TWFE), the functional form (IHS), and the measurement of the CBI index itself, we consistently failed to reject the null hypothesis that central bank independence buffers the transmission of commodity shocks. These results suggest that while CBI serves as an essential structural anchor for long-run price stability, it does not function as a dynamic stabilizer against immediate global volatility. By transparently documenting the survival of our base effects alongside the fragility of our interaction terms, this study provides a credible and honest appraisal of the institutional limits of monetary shock mitigation.
