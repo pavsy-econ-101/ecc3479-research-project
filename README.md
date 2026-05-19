@@ -1,7 +1,18 @@
 # ECC3479 - Central Bank Independence and Inflation in Oil-Exporting Economies
 
+# ECC3479 - Central Bank Independence and Inflation in Oil-Exporting Economies
+
 ## 📌 Project Overview
 This research repository provides a fully reproducible data pipeline to investigate the macroeconomic relationship between **Central Bank Independence (CBI)**, **Exchange Rate Regimes**, and **Inflation**. The study focuses on the structural differences between oil-exporting and oil-importing nations from **1990 to 2024**.
+
+---
+
+## 📊 Empirical Replication Matrix
+Because the automated R pipeline scripts export image assets and output matrices using their baseline econometric/variable names, their filenames may differ from the stylized, editorial layout numbering of the final compiled PDF paper.
+
+👉 **[Click Here to View the Figure & Table Replication Matrix (REPLICATION_MATRIX.md)](REPLICATION_MATRIX.md)**
+
+This standalone guide explicitly maps every table, figure, and appendix asset in our paper back to its exact generation script and output path.
 
 ---
 
@@ -23,6 +34,8 @@ ecc3479-research-project
     ├── eda_figures/            # Exploratory data analysis (Graphs and Visual Outputs)
 │   └── robustness_analysis/    # Explanatory Notes and Visuals used in the Robustness Analysis
 ├── docs/                       # Methodology Notes
+├── Project Report.pdf          # Final Paper (pdf)
+├── Presentation Slides.pdf     # Presentation Slides as delivered on 26 May 2026 (pdf) 
 └── README.md                   # Project documentation and execution guide
 ```
 
@@ -115,10 +128,10 @@ Before running the scripts, you must ensure the local directory is prepared:
 
 ## 🗃 Data Inventory & Source Indicators
 
-### Raw Data
+### Raw Data Source
 Please review `docs/data_guide.md` for detailed instructions on accessing the data points.
 
-### Clean Data
+### Clean Data for Analysis
 Please review `data/clean/data_codebook.md` for a complete set of variables contained in `df_panel_final.csv` and its interpretations.
 
 ### Data Cleaning Methodology
@@ -139,8 +152,6 @@ Please review `docs/econometric_cleaning.md` for details surrounding the process
 
 **Institutional Affiliation:** Monash University
 
-**Date:** May 2026  
+**Last updated:** 20 May 2026  
 
 This repository was developed for academic assessment purposes (Unit ECC3479). All rights are reserved. The code and documentation provided herein are the original work of the author. Redistribution or commercial use of this material is prohibited without explicit consent.
-
-**Status:** Robustness Checks completed
