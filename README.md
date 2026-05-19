@@ -23,8 +23,8 @@ ecc3479-research-project
     ├── eda_figures/            # Exploratory data analysis (Graphs and Visual Outputs)
 │   └── robustness_analysis/    # Explanatory Notes and Visuals used in the Robustness Analysis
 ├── docs/                       # Methodology Notes
+├── Presentation Slides.pdf     # Presentation Slides to be delivered on 26 May 2026 (pdf) 
 ├── Project Report.pdf          # Final Paper (pdf)
-├── Presentation Slides.pdf     # Presentation Slides as delivered on 26 May 2026 (pdf) 
 └── README.md                   # Project documentation and execution guide
 ```
 
