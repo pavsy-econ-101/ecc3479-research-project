@@ -1,18 +1,7 @@
 # ECC3479 - Central Bank Independence and Inflation in Oil-Exporting Economies
 
-# ECC3479 - Central Bank Independence and Inflation in Oil-Exporting Economies
-
 ## 📌 Project Overview
 This research repository provides a fully reproducible data pipeline to investigate the macroeconomic relationship between **Central Bank Independence (CBI)**, **Exchange Rate Regimes**, and **Inflation**. The study focuses on the structural differences between oil-exporting and oil-importing nations from **1990 to 2024**.
-
----
-
-## 📊 Empirical Replication Matrix
-Because the automated R pipeline scripts export image assets and output matrices using their baseline econometric/variable names, their filenames may differ from the stylized, editorial layout numbering of the final compiled PDF paper.
-
-👉 **[Click Here to View the Figure & Table Replication Matrix (REPLICATION_MATRIX.md)](REPLICATION_MATRIX.md)**
-
-This standalone guide explicitly maps every table, figure, and appendix asset in our paper back to its exact generation script and output path.
 
 ---
 
@@ -73,6 +62,14 @@ To ensure reproducibility, the following environment is required:
     * `rmarkdown` (Converting and Managing Rmarkdown files)
 ---
 
+## 📊 Empirical Replication Matrix
+Because the automated R pipeline scripts export image assets and output matrices using their baseline econometric/variable names, their filenames may differ from the stylized, editorial layout numbering of the final compiled PDF paper.
+
+👉 **[Click Here to View the Figure & Table Replication Matrix (replication_matrix.md)](docs/replication_matrix.md)**
+
+This standalone guide explicitly maps every table, figure, and appendix asset in our paper back to its exact generation script and output path.
+
+---
 
 ## 🚀 How to Run from Scratch
 
